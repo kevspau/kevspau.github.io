@@ -2,13 +2,105 @@
 
 <html>
     <head>
-        <title>My Website</title>
+        <title>kespau</title>
+        <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.classless.min.css">
+        <style type="text/css">
+            #footer-content {
+                text-align: left;
+                font-size: 18px;
+            }
+            #footer {
+                text-align: center;
+            }
+        </style>
     </head>
     <body>
-        <h1>Are you lost or something? there's nothing here</h1>
-        <a href="https://github.com/sharpcdf">github</a>
-        <a href="https://mastodon.social/@sharpcdf">mastodon</a>
-        <a href="https://codeberg.org/sharpcdf">codeberg</a>
-        <h2>Click one of these to get back on track</h2>
+        <header>
+            <nav>
+                <hgroup>
+                    <h2>kevspau</h2>
+                    <h3>Nim & Haxe programmer</h3>
+                </hgroup>
+                
+                <ul>
+                    <li><a href="https://kevspau.github.io/blog">Blog</a></li>
+                    <li><a href="https://github.com/kevspau">Github</a></li>
+                    <li><a href="https://codeberg.org/sharpcdf">Codeberg</a></li>
+                    <li><a href="https://kespau.newgrounds.com">Newgrounds</a></li>
+                    <li><a href="https://mastodon.social/@sharpcdf">Mastodon</a></li>
+                </ul>
+            </nav>
+        </header>
+        <main>
+            <article>
+                <h2>About Me</h2>
+                <p>Hi, you can call me kevspau, kespau, or sharpcdf. I enjoy making games with <a href="https://haxe.org">Haxe</a> and various frameworks such as <a href="https://ceramic-engine.com">Ceramic</a>. I also like making all sorts of apps with <a href="https://nim-lang.org">Nim</a> and occasionally Python, including GUI and CLI apps. I've learned many different programming languages, although now I focus on Haxe and Nim for the majority of my projects. I also have experience with programming robots in C++ using <a href="https://wpilib.org">wpilib</a>, a library for programming robots made for the FIRST Robotics Competition. I love messing around and making bizarre/useless things just for the hell of it!</p>
+                <br>
+                <p>I would love to collaborate on games, you can contact me on my <a href="https://mastodon.social/@sharpcdf">Mastodon</a> or Discord, sharpcdf#1672!</p>
+            </article>
+            <details>
+                <summary>Projects</summary>
+                <div class="grid">
+                    <div>
+                        <a href="https://github.com/kevspau/jitter">Jitter</a>
+                        <br>
+                        <small>Give the finger to git clone</small>
+                        <small>Language used: Nim</small>
+                    </div>
+                    <hr>
+                    <div>
+                        <a href="https://github.com/kevspau/awesome-ceramic">awesome-ceramic</a>
+                        <br>
+                        <small>A list of awesome things related to the ceramic engine for Haxe</small>
+                        <small>Language used: Markdown</small>
+                    </div>
+                    <hr>
+                    <div>
+                        <a href="https://github.com/kevspau/dupabase">Dupabase</a>
+                        <br>
+                        <small>A D wrapper around the PostgREST API for supabase</small>
+                        <small>Language used: D</small>
+                    </div>
+                    <hr>
+                    <div>
+                        <a href="https://github.com/kevspau/mr-clean">mr-clean</a>
+                        <br>
+                        <small>Clean up your taskbar/desktop/start menu</small>
+                        <small>Language used: D</small>
+                    </div>
+                    <hr>
+                    <div>
+                        <a href="https://github.com/kevspau/dl">dl</a>
+                        <br>
+                        <small>ls for dummies</small>
+                        <small>Language used: Nim</small>
+                    </div>
+                    <hr>
+                    <div>
+                        <a href="https://github.com/kevspau/flapus-birdus">flapus-birdus</a>
+                        <br>
+                        <small>A modified flappy bird</small>
+                        <small>Language used: Haxe</small>
+                    </div>
+                    <hr>
+                    <div>
+                        <a href="https://github.com/gatoraidr/chomper">Chomper</a>
+                        <br>
+                        <small>A modular and simple game engine for odin</small>
+                        <small>Language used: Odin</small>
+                    </div>
+                    <hr>
+                    <div>
+                        <a href="https://github.com/gatoraidr/gatoraider">Gatoraider</a>
+                        <br>
+                        <small>The slow process of a game being born in Odin</small>
+                        <small>Language used: Odin</small>
+                    </div>
+                </div>
+            </details>
+        </main>
+        <footer id="footer">
+            <em><small id="footer-content">Somehow made by me with nothing but <a href="picocss.com">pico.css</a></small></em>
+        </footer>
     </body>
 </html>
