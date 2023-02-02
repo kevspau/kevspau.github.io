@@ -7540,6 +7540,7 @@ DeathScreen.prototype = $extend(ceramic_Scene.prototype,{
 		this.add(h);
 		ceramic_App.app.input.onKeyDown(this,function(key) {
 			if(key.scanCode == 40) {
+				MainScene.score = 0;
 				ceramic_App.app.get_scenes().set_main(new StartScreen());
 			}
 		});
