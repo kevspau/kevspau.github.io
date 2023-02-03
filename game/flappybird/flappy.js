@@ -7530,20 +7530,29 @@ DeathScreen.prototype = $extend(ceramic_Scene.prototype,{
 		score.set_color(0);
 		this.add(score);
 		var h = new ceramic_Text();
-		h.set_content("Press Enter to go back to the Main Menu.");
+		h.set_font(this.get_assets().font(assets_Fonts.KA_1));
+		h.set_content("Enter - Home\nSpace - Restart");
 		h.set_anchorX(0.5);
 		h.set_anchorY(0.5);
 		var x = this.get_width() / 2;
 		var y = this.get_height() * 0.9;
 		h.set_x(x);
 		h.set_y(y);
+		h.set_color(0);
+		h.set_align(ceramic_TextAlign.CENTER);
 		this.add(h);
-		ceramic_App.app.input.onKeyDown(this,function(key) {
-			if(key.scanCode == 40) {
-				MainScene.score = 0;
-				ceramic_App.app.get_scenes().set_main(new StartScreen());
-			}
-		});
+		ceramic_App.app.input.onceKeyDown(this,$bind(this,this.keyDown));
+	}
+	,keyDown: function(key) {
+		if(key.scanCode == 40) {
+			MainScene.score = 0;
+			ceramic_App.app.get_scenes().set_main(new StartScreen());
+		} else if(key.scanCode == 44) {
+			MainScene.score = 0;
+			ceramic_App.app.get_scenes().set_main(new MainScene());
+		} else {
+			ceramic_App.app.input.onceKeyDown(this,$bind(this,this.keyDown));
+		}
 	}
 	,__class__: DeathScreen
 });
@@ -7901,7 +7910,6 @@ MainScene.prototype = $extend(ceramic_Scene.prototype,{
 				++_g;
 				ceramic_App.app.arcade.world.collide(_gthis.plr,v,function(b1,b2) {
 					_gthis.isDead = true;
-					haxe_Log.trace("yo",{ fileName : "/home/sharpcdf/Documents/Projects/flappy/src/MainScene.hx", lineNumber : 49, className : "MainScene", methodName : "create"});
 				});
 			}
 		});
@@ -7911,7 +7919,7 @@ MainScene.prototype = $extend(ceramic_Scene.prototype,{
 			ceramic_App.app.arcade.world.isPaused = true;
 			ceramic_App.app.get_scenes().set_main(new DeathScreen(MainScene.score));
 		}
-		if(this.plr.y <= 0 || this.plr.y >= this.get_height()) {
+		if(this.plr.y - this.plr.get_height() / 2 <= 0 || this.plr.y + this.plr.get_height() / 2 >= this.get_height()) {
 			this.isDead = true;
 		}
 		if(this.plr.smach.get_state() == 1 && this.plr.rotation > -30) {
@@ -7946,7 +7954,7 @@ MainScene.prototype = $extend(ceramic_Scene.prototype,{
 			this.pipes.push(p);
 			this.pipePos = this.pipePos == Pos.DOWN ? Pos.UP : Pos.DOWN;
 			this.pipeSpeed += 3;
-			if(this.pipeWaitSpawn > 1.3) {
+			if(this.pipeWaitSpawn > 1.5) {
 				this.pipeWaitSpawn -= 0.1;
 			}
 		}
@@ -8310,8 +8318,8 @@ var Player = function() {
 	_this.set_gridHeight(64);
 	this.sheet._addGridAnimation("falling",[0],0);
 	this.sheet._addGridAnimation("flying",[1],0);
-	this.set_width(31);
-	this.set_height(34);
+	this.set_width(34);
+	this.set_height(35);
 	this.set_anchorX(0.5);
 	this.set_anchorY(0.5);
 	var _this = this.quad;
@@ -8324,6 +8332,20 @@ var Player = function() {
 	_this.set_y(y);
 	this.set_animation("falling");
 	this.smach.set_state(0);
+	var hb = new ceramic_Quad();
+	hb.color = 65280;
+	var width = this.get_width();
+	var height = this.get_height();
+	hb.set_width(width);
+	hb.set_height(height);
+	hb.set_anchorX(0.5);
+	hb.set_anchorY(0.5);
+	var x = this.get_width() / 2;
+	var y = this.get_height() / 2;
+	hb.set_x(x);
+	hb.set_y(y);
+	hb.set_depth(-5);
+	this.add(hb);
 	ceramic_App.app.logger.debug("width, height: " + this.get_width() + ", " + this.get_height(),{ fileName : "/home/sharpcdf/Documents/Projects/flappy/src/Player.hx", lineNumber : 41, className : "Player", methodName : "new"});
 	ceramic_App.app.logger.debug("quad.width, quad.height: " + this.quad.get_width() + ", " + this.quad.get_height(),{ fileName : "/home/sharpcdf/Documents/Projects/flappy/src/Player.hx", lineNumber : 42, className : "Player", methodName : "new"});
 };
