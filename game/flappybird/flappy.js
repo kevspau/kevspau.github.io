@@ -7934,7 +7934,7 @@ MainScene.prototype = $extend(ceramic_Scene.prototype,{
 		while(_g < _g1.length) {
 			var v = _g1[_g];
 			++_g;
-			if(v.x - v.get_width() / 2 <= 0) {
+			if(v.x + v.get_width() / 2 <= 0) {
 				HxOverrides.remove(this.pipes,v);
 				v.destroy();
 				MainScene.score += 1;
@@ -8332,20 +8332,6 @@ var Player = function() {
 	_this.set_y(y);
 	this.set_animation("falling");
 	this.smach.set_state(0);
-	var hb = new ceramic_Quad();
-	hb.color = 65280;
-	var width = this.get_width();
-	var height = this.get_height();
-	hb.set_width(width);
-	hb.set_height(height);
-	hb.set_anchorX(0.5);
-	hb.set_anchorY(0.5);
-	var x = this.get_width() / 2;
-	var y = this.get_height() / 2;
-	hb.set_x(x);
-	hb.set_y(y);
-	hb.set_depth(-5);
-	this.add(hb);
 	ceramic_App.app.logger.debug("width, height: " + this.get_width() + ", " + this.get_height(),{ fileName : "/home/sharpcdf/Documents/Projects/flappy/src/Player.hx", lineNumber : 41, className : "Player", methodName : "new"});
 	ceramic_App.app.logger.debug("quad.width, quad.height: " + this.quad.get_width() + ", " + this.quad.get_height(),{ fileName : "/home/sharpcdf/Documents/Projects/flappy/src/Player.hx", lineNumber : 42, className : "Player", methodName : "new"});
 };
@@ -8379,7 +8365,7 @@ var Project = function(settings) {
 	settings.settings.set_background(0);
 	settings.settings.set_targetWidth(640);
 	settings.settings.set_targetHeight(480);
-	settings.settings.set_scaling(ceramic_ScreenScaling.FIT);
+	settings.settings.set_scaling(ceramic_ScreenScaling.FIT_RESIZE);
 	settings.settings.resizable = true;
 	ceramic_App.app.onceReady(this,$bind(this,this.ready));
 };
