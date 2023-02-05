@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>Introduction</title>
+        <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.classless.min.css">
+        <style>
+            #footer {
+                float:right;
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <header>
+                <nav>
+                    <ul>
+                        <li><a href="https://kevspau.github.io">Home</a></li>
+                        <li><a href="https://kevspau.github.io/blog/flappybird/making-the-main-scene.html">Making The Main Scene</a></li>
+                    </ul>
+                </nav>
+            </header>
+            <article>
+                <hgroup>
+                    <h1>Making Flapus-Birdus in Ceramic</h1>
+                    <h1><strong>Introduction</strong></h1>
+                </hgroup>
+                <footer>
+                    In this series of tutorials, you'll learn how to accomplish a variety of things in Ceramic, a 2D media & game engine for Haxe.
+                <br>
+                <br>
+                Now, Haxe is a great language. It can transpile to a variety of languages for cross-platform builds, and it has an insane amount of options when choosing a game engine. It's even been used to make popular games such as Dead Cells, Papers Please, and Northguard! One of the newer avaliable engines is ceramic. Ceramic is a Cross-platform 2D framework written in Haxe that can export natively to desktop (windows, mac, linux), mobile (ios, android), web (js + webgl) and to unity projects. It's extensible, so you can add support for sprites, nape & arcade physics, and more. The engine also has a nice configuring process, and can be configured through a ceramic.yml file and a Project.hx file. You can read more about configuration on the <a href="https://ceramic-engine.com/guides/ceramic-yml-reference/">ceramic website</a>. Because of the ability to compile to unity projects, ceramic projects can also be compiled to any platform that unity supports.
+                <br>
+                <br>
+                This game will help you learn a variety of things for ceramic, and how the developing process typically works. These tutorials will help you with learning, in no particular order:
+                <br>
+                <br>
+                <ul>
+                    <li>
+                        arcade physics with
+                        <ul>
+                            <li>collisions</li>
+                            <li>gravity/acceleration</li>
+                        </ul>
+                    </li>
+                    <li>loading and using custom fonts</li>
+                    <li>loading and using images</li>
+                    <li>custom logic(classes)</li>
+                    <li>changing scene</li>
+                    <li>non-blocking timer</li>
+                    <li>input with scan codes</li>
+                    <li>sprites with spritesheet animations</li>
+                </ul>
+                <hr>
+                Let's begin with downloading the ceramic cli tool and creating a project.
+                As long as you have haxe and haxelib installed, you can install ceramic by running <code>haxelib install ceramic</code>. When on linux, you may need elevated permissions to install ceramic globally. Now you may run <code>ceramic help</code> to check if the tool is installed. You can see that there a quite a lot of avaliable commands, but only a few will be used in these tutorials. To create a new project, run <code>ceramic init --name flapus-birdus</code>. You will see that a new directory will be created, called "flapus-birdus".
+                <hr>
+                To run the project, run
+                <br>
+                <code>
+                    cd flapus-birdus
+                </code>
+                <br>
+                <code>
+                    ceramic clay run web --setup
+                </code>
+                <br>
+                <br>
+                These commands change the cwd to the newly created ceramic project, and then runs it in the web. Electron is enabled by default, so a window will be created with the project. the <code>--setup</code> flag will ensure that the web target is set up correctly before running the project.
+                <hr>
+                <br>
+                And that's it, you have a ceramic project! In the next tutorial, we'll set up the main scene with a background and go over the structure of it, along with how to add assets to the project. You can go over the general structure of a ceramic project in <a href="https://ceramic-engine.com/guides/inside-a-default-project/">this</a> guide on the ceramic engine website.
+                <br>
+                <div id="footer">
+                    <a href="https://kevspau.github.io/blog/flappybird/making-the-main-scene.html">Making the Main Scene >></a>
+                </div>
+                </footer>
+            </article>
+        </main>
+    </body>
+</html>
