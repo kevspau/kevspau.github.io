@@ -1,0 +1,124 @@
+{
+    "assets": [
+        {
+            "name": "arrow_keys.png"
+        },
+        {
+            "name": "bedroom.png"
+        },
+        {
+            "name": "bloom.frag"
+        },
+        {
+            "name": "bloom.vert"
+        },
+        {
+            "name": "blur.frag"
+        },
+        {
+            "name": "blur.vert"
+        },
+        {
+            "name": "ceramic.png"
+        },
+        {
+            "name": "ceramic@2x.png"
+        },
+        {
+            "name": "closet.png"
+        },
+        {
+            "name": "closet_man.png"
+        },
+        {
+            "name": "Daydream.fnt"
+        },
+        {
+            "name": "Daydream.png"
+        },
+        {
+            "name": "Daydream.ttf"
+        },
+        {
+            "name": "fxaa.frag"
+        },
+        {
+            "name": "fxaa.vert"
+        },
+        {
+            "name": "Galmuri14.fnt"
+        },
+        {
+            "name": "Galmuri14.png"
+        },
+        {
+            "name": "Galmuri14.ttf"
+        },
+        {
+            "name": "game_jam_1.mp3"
+        },
+        {
+            "name": "glow.frag"
+        },
+        {
+            "name": "glow.vert"
+        },
+        {
+            "name": "haxejam-logo.png"
+        },
+        {
+            "name": "laser.wav"
+        },
+        {
+            "name": "menu_music.mp3"
+        },
+        {
+            "name": "msdf.frag"
+        },
+        {
+            "name": "msdf.vert"
+        },
+        {
+            "name": "outline.frag"
+        },
+        {
+            "name": "outline.vert"
+        },
+        {
+            "name": "pickup.wav"
+        },
+        {
+            "name": "pixelArt.frag"
+        },
+        {
+            "name": "pixelArt.vert"
+        },
+        {
+            "name": "player.png"
+        },
+        {
+            "name": "random.wav"
+        },
+        {
+            "name": "RobotoMedium.fnt"
+        },
+        {
+            "name": "RobotoMedium.png"
+        },
+        {
+            "name": "textured.frag"
+        },
+        {
+            "name": "textured.vert"
+        },
+        {
+            "name": "tintBlack.frag"
+        },
+        {
+            "name": "tintBlack.vert"
+        },
+        {
+            "name": "white.png"
+        }
+    ]
+}
