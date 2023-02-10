@@ -5418,6 +5418,10 @@ ceramic_Quad.prototype = $extend(ceramic_Visual.prototype,{
 	}
 	,_texture: null
 	,_set_texture: function(texture) {
+		if(!(texture == null || texture._lifecycleState >= 0)) {
+			ceramic_App.app.logger.error("texture == null || !texture.destroyed" + (" (" + ("Cannot assign destroyed texture: " + Std.string(texture)) + ")"),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Quad.hx", lineNumber : 83, className : "ceramic.Quad", methodName : "_set_texture"});
+			throw haxe_Exception.thrown("texture == null || !texture.destroyed" + (" (" + ("Cannot assign destroyed texture: " + Std.string(texture)) + ")"));
+		}
 		if(this._texture != null) {
 			this._texture.offDestroy($bind(this,this.textureDestroyed));
 			if(this._texture.asset != null) {
@@ -7149,6 +7153,7 @@ Main.configure = function(config) {
 	if(backend_ElectronRunner.electronRunner != null) {
 		if(backend_ElectronRunner.electronRunner.ceramicSettings != null) {
 			backend_ElectronRunner.electronRunner.ceramicSettings({ "trace" : function(str) {
+				haxe_Log.trace("app.js: " + str,{ fileName : "/home/sharpcdf/ceramic/plugins/clay/runtime/src/Main.hx", lineNumber : 226, className : "Main", methodName : "configure"});
 			}, title : Main.app.settings.get_title(), fullscreen : Main.app.settings.get_fullscreen(), resizable : Main.app.settings.resizable, targetWidth : Main.app.settings.get_windowWidth() > 0 ? Main.app.settings.get_windowWidth() : Main.app.settings.get_targetWidth(), targetHeight : Main.app.settings.get_windowHeight() > 0 ? Main.app.settings.get_windowHeight() : Main.app.settings.get_targetHeight()});
 		}
 		if(backend_ElectronRunner.electronRunner.listenFullscreen != null) {
@@ -7571,7 +7576,7 @@ Menu.prototype = $extend(ceramic_Scene.prototype,{
 		this.get_assets().add(assets_Fonts.GALMURI_14);
 	}
 	,create: function() {
-		this.get_assets().sound(assets_Sounds.MENU_MUSIC).play(0,true);
+		this.get_assets().sound(assets_Sounds.MENU_MUSIC).play(0,true,3);
 		var logo = new ceramic_Quad();
 		var texture = this.get_assets().texture(assets_Images.HAXEJAM_LOGO);
 		if(logo._texture != texture) {
@@ -7604,7 +7609,7 @@ Menu.prototype = $extend(ceramic_Scene.prototype,{
 		start.set_anchorX(0.5);
 		start.set_anchorY(0.5);
 		start.set_pointSize(15);
-		start.set_content("> PRESS SPACE BEGIN THE PAIN!!!!");
+		start.set_content("> PRESS SPACE TO BEGIN THE PAIN!!!!");
 		start.set_align(ceramic_TextAlign.CENTER);
 		var x = this.get_width() / 2;
 		var y = this.get_height() * 0.8;
@@ -11981,7 +11986,7 @@ backend_Draw.prototype = {
 		backend_Draw._activeTextureSlot = slot;
 		if(clay_opengl_GLGraphics._activeTextureSlot != slot) {
 			clay_opengl_GLGraphics._activeTextureSlot = slot;
-			while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(null);
+			while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(clay_opengl_GLGraphics.NO_TEXTURE);
 			clay_opengl_web_GL.gl.activeTexture(33984 + slot);
 		}
 	}
@@ -12010,8 +12015,8 @@ backend_Draw.prototype = {
 					clay_opengl_GLGraphics.bindFramebuffer(renderTarget1.framebuffer);
 					clay_opengl_GLGraphics.bindRenderbuffer(renderTarget1.renderbuffer);
 				} else {
-					clay_opengl_GLGraphics.bindFramebuffer(null);
-					clay_opengl_GLGraphics.bindRenderbuffer(null);
+					clay_opengl_GLGraphics.bindFramebuffer(clay_opengl_GLGraphics.NO_FRAMEBUFFER);
+					clay_opengl_GLGraphics.bindRenderbuffer(clay_opengl_GLGraphics.NO_RENDERBUFFER);
 				}
 				var left = 0.0;
 				var top = 0.0;
@@ -12191,8 +12196,8 @@ backend_Draw.prototype = {
 					clay_opengl_GLGraphics.bindFramebuffer(renderTarget.framebuffer);
 					clay_opengl_GLGraphics.bindRenderbuffer(renderTarget.renderbuffer);
 				} else {
-					clay_opengl_GLGraphics.bindFramebuffer(null);
-					clay_opengl_GLGraphics.bindRenderbuffer(null);
+					clay_opengl_GLGraphics.bindFramebuffer(clay_opengl_GLGraphics.NO_FRAMEBUFFER);
+					clay_opengl_GLGraphics.bindRenderbuffer(clay_opengl_GLGraphics.NO_RENDERBUFFER);
 				}
 				var left = 0.0;
 				var top = 0.0;
@@ -12774,7 +12779,7 @@ backend_Draw.prototype = {
 				++n;
 			}
 		}
-		clay_opengl_web_GL.gl.bindBuffer(34963,null);
+		clay_opengl_web_GL.gl.bindBuffer(34963,clay_opengl_GLGraphics.NO_BUFFER);
 		clay_opengl_web_GL.gl.deleteBuffer(ib);
 		if(backend_Draw._currentRenderTarget != null) {
 			backend_Draw._didUpdateCurrentRenderTarget = true;
@@ -17090,6 +17095,546 @@ backend_Texts.prototype = {
 	}
 	,loadingTextCallbacks: null
 	,__class__: backend_Texts
+};
+var clay_opengl_GLGraphics = function() { };
+$hxClasses["clay.opengl.GLGraphics"] = clay_opengl_GLGraphics;
+clay_opengl_GLGraphics.__name__ = "clay.opengl.GLGraphics";
+clay_opengl_GLGraphics.setup = function() {
+	clay_opengl_GLGraphics._defaultFramebuffer = clay_opengl_web_GL.gl.getParameter(36006);
+	clay_opengl_GLGraphics._defaultRenderbuffer = clay_opengl_web_GL.gl.getParameter(36007);
+	clay_opengl_GLGraphics._didFetchDefaultBuffers = true;
+};
+clay_opengl_GLGraphics.clear = function(r,g,b,a,clearDepth) {
+	if(clearDepth == null) {
+		clearDepth = true;
+	}
+	clay_opengl_web_GL.gl.clearColor(r,g,b,a);
+	if(clearDepth && clay_Clay.app.config.render.depth > 0) {
+		clay_opengl_web_GL.gl.clear(16640);
+		clay_opengl_web_GL.gl.clearDepth(1.0);
+	} else {
+		clay_opengl_web_GL.gl.clear(16384);
+	}
+};
+clay_opengl_GLGraphics.createTextureId = function() {
+	return clay_opengl_web_GL.gl.createTexture();
+};
+clay_opengl_GLGraphics.setActiveTexture = function(slot) {
+	if(clay_opengl_GLGraphics._activeTextureSlot != slot) {
+		clay_opengl_GLGraphics._activeTextureSlot = slot;
+		while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(clay_opengl_GLGraphics.NO_TEXTURE);
+		clay_opengl_web_GL.gl.activeTexture(33984 + slot);
+	}
+};
+clay_opengl_GLGraphics.deleteTexture = function(textureId) {
+	clay_opengl_web_GL.gl.deleteTexture(textureId);
+	var _g = 0;
+	var _g1 = clay_opengl_GLGraphics._boundTexture2D.length;
+	while(_g < _g1) {
+		var i = _g++;
+		if(clay_opengl_GLGraphics._boundTexture2D[i] == textureId) {
+			clay_opengl_GLGraphics._boundTexture2D[i] = clay_opengl_GLGraphics.NO_TEXTURE;
+		}
+	}
+};
+clay_opengl_GLGraphics.setViewport = function(x,y,width,height) {
+	clay_opengl_web_GL.gl.viewport(x,y,width,height);
+};
+clay_opengl_GLGraphics.bindTexture2d = function(textureId) {
+	if(clay_opengl_GLGraphics._boundTexture2D[clay_opengl_GLGraphics._activeTextureSlot] != textureId) {
+		clay_opengl_GLGraphics._boundTexture2D[clay_opengl_GLGraphics._activeTextureSlot] = textureId;
+		clay_opengl_web_GL.gl.bindTexture(3553,textureId);
+	}
+};
+clay_opengl_GLGraphics.maxTextureSize = function() {
+	var size = clay_opengl_web_GL.gl.getParameter(3379);
+	if(size <= 0) {
+		size = 4096;
+	}
+	return size;
+};
+clay_opengl_GLGraphics.needsPreprocessedPremultipliedAlpha = function() {
+	return false;
+};
+clay_opengl_GLGraphics.submitCompressedTexture2dPixels = function(level,format,width,height,pixels,premultipliedAlpha) {
+	clay_opengl_web_GL.gl.pixelStorei(37441,premultipliedAlpha ? 1 : 0);
+	clay_opengl_web_GL.gl.compressedTexImage2D(3553,level,format,width,height,0,pixels);
+};
+clay_opengl_GLGraphics.submitTexture2dPixels = function(level,format,width,height,dataType,pixels,premultipliedAlpha) {
+	clay_opengl_web_GL.gl.pixelStorei(37441,premultipliedAlpha ? 1 : 0);
+	clay_opengl_web_GL.gl.texImage2D(3553,level,format,width,height,0,format,dataType,pixels);
+};
+clay_opengl_GLGraphics.fetchTexture2dPixels = function(into,x,y,w,h) {
+	if(into == null) {
+		throw haxe_Exception.thrown("Texture fetch requires a valid buffer to store the pixels.");
+	}
+	var textureId = clay_opengl_GLGraphics._boundTexture2D[clay_opengl_GLGraphics._activeTextureSlot];
+	var required = w * h * 4;
+	if(into.length < required) {
+		throw haxe_Exception.thrown("Texture fetch requires at least " + required + " (w * h * 4) bytes for the pixels, you have " + into.length + "!");
+	}
+	var fb = clay_opengl_web_GL.gl.createFramebuffer();
+	clay_opengl_web_GL.gl.bindFramebuffer(36160,fb);
+	clay_opengl_web_GL.gl.framebufferTexture2D(36160,36064,3553,textureId,0);
+	if(clay_opengl_web_GL.gl.checkFramebufferStatus(36160) != 36053) {
+		throw haxe_Exception.thrown("Incomplete framebuffer");
+	}
+	clay_opengl_web_GL.gl.readPixels(x,y,w,h,6408,5121,into);
+	clay_opengl_web_GL.gl.bindFramebuffer(36160,clay_opengl_GLGraphics.NO_FRAMEBUFFER);
+	clay_opengl_web_GL.gl.deleteFramebuffer(fb);
+	fb = clay_opengl_GLGraphics.NO_FRAMEBUFFER;
+};
+clay_opengl_GLGraphics.createFramebuffer = function() {
+	return clay_opengl_web_GL.gl.createFramebuffer();
+};
+clay_opengl_GLGraphics.bindFramebuffer = function(framebuffer) {
+	if(clay_opengl_GLGraphics._boundFramebuffer != framebuffer) {
+		clay_opengl_GLGraphics._boundFramebuffer = framebuffer;
+		if(framebuffer == clay_opengl_GLGraphics.NO_FRAMEBUFFER) {
+			framebuffer = clay_opengl_GLGraphics._defaultFramebuffer;
+		}
+		clay_opengl_web_GL.gl.bindFramebuffer(36160,framebuffer);
+	}
+};
+clay_opengl_GLGraphics.createRenderbuffer = function() {
+	return clay_opengl_web_GL.gl.createRenderbuffer();
+};
+clay_opengl_GLGraphics.bindRenderbuffer = function(renderbuffer) {
+	if(clay_opengl_GLGraphics._boundRenderbuffer != renderbuffer) {
+		clay_opengl_GLGraphics._boundRenderbuffer = renderbuffer;
+		if(renderbuffer == clay_opengl_GLGraphics.NO_RENDERBUFFER) {
+			renderbuffer = clay_opengl_GLGraphics._defaultRenderbuffer;
+		}
+		clay_opengl_web_GL.gl.bindRenderbuffer(36161,renderbuffer);
+	}
+};
+clay_opengl_GLGraphics.setTexture2dMinFilter = function(minFilter) {
+	clay_opengl_web_GL.gl.texParameteri(3553,10241,minFilter);
+};
+clay_opengl_GLGraphics.setTexture2dMagFilter = function(magFilter) {
+	clay_opengl_web_GL.gl.texParameteri(3553,10240,magFilter);
+};
+clay_opengl_GLGraphics.setTexture2dWrapS = function(wrapS) {
+	clay_opengl_web_GL.gl.texParameteri(3553,10242,wrapS);
+};
+clay_opengl_GLGraphics.setTexture2dWrapT = function(wrapT) {
+	clay_opengl_web_GL.gl.texParameteri(3553,10243,wrapT);
+};
+clay_opengl_GLGraphics.configureRenderTargetBuffersStorage = function(renderTarget,textureId,width,height,depth,stencil,antialiasing) {
+	if(antialiasing > 1) {
+		clay_opengl_GLGraphics.bindRenderbuffer(renderTarget.renderbuffer);
+		clay_opengl_web_GL.gl.renderbufferStorageMultisample(36161,antialiasing,32856,width,height);
+		if(depth || stencil) {
+			clay_opengl_GLGraphics.bindRenderbuffer(renderTarget.msDepthStencilRenderbuffer);
+			if(stencil) {
+				clay_opengl_web_GL.gl.renderbufferStorageMultisample(36161,antialiasing,35056,width,height);
+			} else {
+				clay_opengl_web_GL.gl.renderbufferStorageMultisample(36161,antialiasing,33189,width,height);
+			}
+		}
+		clay_opengl_GLGraphics.bindFramebuffer(renderTarget.framebuffer);
+		clay_opengl_web_GL.gl.framebufferRenderbuffer(36160,36064,36161,renderTarget.renderbuffer);
+		if(depth || stencil) {
+			if(stencil) {
+				clay_opengl_web_GL.gl.framebufferRenderbuffer(36160,33306,36161,renderTarget.msDepthStencilRenderbuffer);
+			} else {
+				clay_opengl_web_GL.gl.framebufferRenderbuffer(36160,36096,36161,renderTarget.msDepthStencilRenderbuffer);
+			}
+		}
+		clay_opengl_GLGraphics.bindRenderbuffer(renderTarget.msResolveColorRenderbuffer);
+		clay_opengl_web_GL.gl.renderbufferStorage(36161,32856,width,height);
+		clay_opengl_GLGraphics.bindFramebuffer(renderTarget.msResolveFramebuffer);
+		clay_opengl_web_GL.gl.framebufferTexture2D(36160,36064,3553,textureId,0);
+	} else {
+		clay_opengl_GLGraphics.bindRenderbuffer(renderTarget.renderbuffer);
+		if(stencil) {
+			clay_opengl_web_GL.gl.renderbufferStorage(36161,34041,width,height);
+		} else if(depth) {
+			clay_opengl_web_GL.gl.renderbufferStorage(36161,33189,width,height);
+		} else {
+			clay_opengl_web_GL.gl.renderbufferStorage(36161,6408,width,height);
+		}
+		clay_opengl_GLGraphics.bindFramebuffer(renderTarget.framebuffer);
+		clay_opengl_web_GL.gl.framebufferTexture2D(36160,36064,3553,textureId,0);
+		if(depth || stencil) {
+			if(stencil) {
+				clay_opengl_web_GL.gl.framebufferRenderbuffer(36160,33306,36161,renderTarget.renderbuffer);
+			} else {
+				clay_opengl_web_GL.gl.framebufferRenderbuffer(36160,36096,36161,renderTarget.renderbuffer);
+			}
+		}
+	}
+	var status = clay_opengl_web_GL.gl.checkFramebufferStatus(36160);
+	switch(status) {
+	case 36053:
+		break;
+	case 36054:
+		throw haxe_Exception.thrown("Incomplete framebuffer: FRAMEBUFFER_INCOMPLETE_ATTACHMENT");
+	case 36055:
+		throw haxe_Exception.thrown("Incomplete framebuffer: FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT");
+	case 36057:
+		throw haxe_Exception.thrown("Incomplete framebuffer: FRAMEBUFFER_INCOMPLETE_DIMENSIONS");
+	case 36059:
+		throw haxe_Exception.thrown("Incomplete framebuffer: FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER");
+	case 36060:
+		throw haxe_Exception.thrown("Incomplete framebuffer: FRAMEBUFFER_INCOMPLETE_READ_BUFFER");
+	case 36061:
+		throw haxe_Exception.thrown("Incomplete framebuffer: FRAMEBUFFER_UNSUPPORTED");
+	case 36182:
+		throw haxe_Exception.thrown("Incomplete framebuffer: FRAMEBUFFER_INCOMPLETE_MULTISAMPLE");
+	default:
+		throw haxe_Exception.thrown("Incomplete framebuffer: " + status);
+	}
+	clay_opengl_GLGraphics.bindFramebuffer(clay_opengl_GLGraphics.NO_FRAMEBUFFER);
+	clay_opengl_GLGraphics.bindRenderbuffer(clay_opengl_GLGraphics.NO_RENDERBUFFER);
+};
+clay_opengl_GLGraphics.blitRenderTargetBuffers = function(renderTarget,width,height) {
+	clay_opengl_web_GL.gl.bindFramebuffer(36008,renderTarget.framebuffer);
+	clay_opengl_web_GL.gl.bindFramebuffer(36009,renderTarget.msResolveFramebuffer);
+	clay_opengl_web_GL.gl.clearBufferfv(6144,0,clay_opengl_GLGraphics.clearBufferForBlitValues,0);
+	clay_opengl_web_GL.gl.blitFramebuffer(0,0,width,height,0,0,width,height,16384,9728);
+	clay_opengl_web_GL.gl.bindFramebuffer(36008,clay_opengl_GLGraphics.NO_FRAMEBUFFER);
+	clay_opengl_web_GL.gl.bindFramebuffer(36009,clay_opengl_GLGraphics.NO_FRAMEBUFFER);
+};
+clay_opengl_GLGraphics.createRenderTarget = function(textureId,width,height,depth,stencil,antialiasing,level,format,dataType) {
+	var renderTarget = new clay_opengl_GLGraphics_$RenderTarget();
+	clay_opengl_web_GL.gl.texImage2D(3553,level,format,width,height,0,format,dataType,null);
+	renderTarget.framebuffer = clay_opengl_web_GL.gl.createFramebuffer();
+	renderTarget.renderbuffer = clay_opengl_web_GL.gl.createRenderbuffer();
+	if(antialiasing > 1) {
+		renderTarget.msResolveFramebuffer = clay_opengl_web_GL.gl.createFramebuffer();
+		renderTarget.msResolveColorRenderbuffer = clay_opengl_web_GL.gl.createRenderbuffer();
+		if(depth || stencil) {
+			renderTarget.msDepthStencilRenderbuffer = clay_opengl_web_GL.gl.createRenderbuffer();
+		} else {
+			renderTarget.msDepthStencilRenderbuffer = clay_opengl_GLGraphics.NO_RENDERBUFFER;
+		}
+	} else {
+		renderTarget.msResolveFramebuffer = clay_opengl_GLGraphics.NO_FRAMEBUFFER;
+		renderTarget.msResolveColorRenderbuffer = clay_opengl_GLGraphics.NO_RENDERBUFFER;
+		renderTarget.msDepthStencilRenderbuffer = clay_opengl_GLGraphics.NO_RENDERBUFFER;
+	}
+	clay_opengl_GLGraphics.configureRenderTargetBuffersStorage(renderTarget,textureId,width,height,depth,stencil,antialiasing);
+	return renderTarget;
+};
+clay_opengl_GLGraphics.deleteRenderTarget = function(renderTarget) {
+	if(renderTarget.framebuffer != clay_opengl_GLGraphics.NO_FRAMEBUFFER) {
+		if(clay_opengl_GLGraphics._boundFramebuffer == renderTarget.framebuffer) {
+			clay_opengl_GLGraphics._boundFramebuffer = clay_opengl_GLGraphics.NO_FRAMEBUFFER;
+		}
+		clay_opengl_web_GL.gl.deleteFramebuffer(renderTarget.framebuffer);
+		renderTarget.framebuffer = clay_opengl_GLGraphics.NO_FRAMEBUFFER;
+	}
+	if(renderTarget.renderbuffer != clay_opengl_GLGraphics.NO_RENDERBUFFER) {
+		if(clay_opengl_GLGraphics._boundRenderbuffer == renderTarget.renderbuffer) {
+			clay_opengl_GLGraphics._boundRenderbuffer = clay_opengl_GLGraphics.NO_RENDERBUFFER;
+		}
+		clay_opengl_web_GL.gl.deleteRenderbuffer(renderTarget.renderbuffer);
+		renderTarget.renderbuffer = clay_opengl_GLGraphics.NO_RENDERBUFFER;
+	}
+	if(renderTarget.msDepthStencilRenderbuffer != clay_opengl_GLGraphics.NO_RENDERBUFFER) {
+		if(clay_opengl_GLGraphics._boundRenderbuffer == renderTarget.msDepthStencilRenderbuffer) {
+			clay_opengl_GLGraphics._boundRenderbuffer = clay_opengl_GLGraphics.NO_RENDERBUFFER;
+		}
+		clay_opengl_web_GL.gl.deleteRenderbuffer(renderTarget.msDepthStencilRenderbuffer);
+		renderTarget.msDepthStencilRenderbuffer = clay_opengl_GLGraphics.NO_RENDERBUFFER;
+	}
+	if(renderTarget.msResolveColorRenderbuffer != clay_opengl_GLGraphics.NO_RENDERBUFFER) {
+		if(clay_opengl_GLGraphics._boundRenderbuffer == renderTarget.msResolveColorRenderbuffer) {
+			clay_opengl_GLGraphics._boundRenderbuffer = clay_opengl_GLGraphics.NO_RENDERBUFFER;
+		}
+		clay_opengl_web_GL.gl.deleteRenderbuffer(renderTarget.msResolveColorRenderbuffer);
+		renderTarget.msResolveColorRenderbuffer = clay_opengl_GLGraphics.NO_RENDERBUFFER;
+	}
+	if(renderTarget.msResolveFramebuffer != clay_opengl_GLGraphics.NO_FRAMEBUFFER) {
+		if(clay_opengl_GLGraphics._boundFramebuffer == renderTarget.msResolveFramebuffer) {
+			clay_opengl_GLGraphics._boundFramebuffer = clay_opengl_GLGraphics.NO_FRAMEBUFFER;
+		}
+		clay_opengl_web_GL.gl.deleteFramebuffer(renderTarget.msResolveFramebuffer);
+		renderTarget.msResolveFramebuffer = clay_opengl_GLGraphics.NO_FRAMEBUFFER;
+	}
+};
+clay_opengl_GLGraphics.setRenderTarget = function(renderTarget) {
+	if(renderTarget != null) {
+		clay_opengl_GLGraphics.bindFramebuffer(renderTarget.framebuffer);
+		clay_opengl_GLGraphics.bindRenderbuffer(renderTarget.renderbuffer);
+	} else {
+		clay_opengl_GLGraphics.bindFramebuffer(clay_opengl_GLGraphics.NO_FRAMEBUFFER);
+		clay_opengl_GLGraphics.bindRenderbuffer(clay_opengl_GLGraphics.NO_RENDERBUFFER);
+	}
+};
+clay_opengl_GLGraphics.enableBlending = function() {
+	clay_opengl_web_GL.gl.enable(3042);
+};
+clay_opengl_GLGraphics.disableBlending = function() {
+	clay_opengl_web_GL.gl.disable(3042);
+};
+clay_opengl_GLGraphics.createShader = function(vertSource,fragSource,attributes,textures) {
+	if(vertSource == null) {
+		throw haxe_Exception.thrown("Cannot create shader: vertSource is null!");
+	}
+	if(fragSource == null) {
+		throw haxe_Exception.thrown("Cannot create shader: fragSource is null!");
+	}
+	var shader = new clay_opengl_GLGraphics_$GpuShader();
+	shader.vertShader = clay_opengl_GLGraphics.compileGLShader(35633,vertSource);
+	if(shader.vertShader == clay_opengl_GLGraphics.NO_SHADER) {
+		clay_opengl_GLGraphics.deleteShader(shader);
+		return null;
+	}
+	shader.fragShader = clay_opengl_GLGraphics.compileGLShader(35632,fragSource);
+	if(shader.fragShader == clay_opengl_GLGraphics.NO_SHADER) {
+		clay_opengl_GLGraphics.deleteShader(shader);
+		return null;
+	}
+	if(!clay_opengl_GLGraphics.linkShader(shader,attributes)) {
+		clay_opengl_GLGraphics.deleteShader(shader);
+		return null;
+	}
+	if(textures != null) {
+		clay_opengl_GLGraphics.configureShaderTextureSlots(shader,textures);
+	}
+	return shader;
+};
+clay_opengl_GLGraphics.linkShader = function(shader,attributes) {
+	var program = clay_opengl_web_GL.gl.createProgram();
+	clay_opengl_web_GL.gl.attachShader(program,shader.vertShader);
+	clay_opengl_web_GL.gl.attachShader(program,shader.fragShader);
+	if(attributes != null) {
+		var _g = 0;
+		var _g1 = attributes.length;
+		while(_g < _g1) {
+			var i = _g++;
+			clay_opengl_web_GL.gl.bindAttribLocation(program,i,attributes[i]);
+		}
+	}
+	clay_opengl_web_GL.gl.linkProgram(program);
+	if(clay_opengl_web_GL.gl.getProgramParameter(program,35714) == 0) {
+		clay_Log.error("\tFailed to link shader program:",{ fileName : "/home/sharpcdf/ceramic/git/clay/src/clay/opengl/GLGraphics.hx", lineNumber : 684, className : "clay.opengl.GLGraphics", methodName : "linkShader"});
+		var items = clay_opengl_web_GL.gl.getProgramInfoLog(program).split("\n");
+		var _g = [];
+		var _g1 = 0;
+		var _g2 = items;
+		while(_g1 < _g2.length) {
+			var v = _g2[_g1];
+			++_g1;
+			if(StringTools.trim(v) != "") {
+				_g.push(v);
+			}
+		}
+		items = _g;
+		var result = new Array(items.length);
+		var _g = 0;
+		var _g1 = items.length;
+		while(_g < _g1) {
+			var i = _g++;
+			result[i] = "\t\t" + StringTools.trim(items[i]);
+		}
+		items = result;
+		clay_Log.error(items.join("\n"),{ fileName : "/home/sharpcdf/ceramic/git/clay/src/clay/opengl/GLGraphics.hx", lineNumber : 685, className : "clay.opengl.GLGraphics", methodName : "linkShader"});
+		clay_opengl_web_GL.gl.deleteProgram(program);
+		return false;
+	}
+	shader.program = program;
+	return true;
+};
+clay_opengl_GLGraphics.configureShaderTextureSlots = function(shader,textures) {
+	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
+		clay_opengl_GLGraphics._boundProgram = shader.program;
+		clay_opengl_web_GL.gl.useProgram(shader.program);
+	}
+	var _g = 0;
+	var _g1 = textures.length;
+	while(_g < _g1) {
+		var i = _g++;
+		var texture = textures[i];
+		var attr = clay_opengl_web_GL.gl.getUniformLocation(shader.program,texture);
+		if(attr != clay_opengl_GLGraphics.NO_LOCATION) {
+			clay_opengl_web_GL.gl.uniform1i(attr,i);
+			shader.textures[i] = texture;
+		}
+	}
+};
+clay_opengl_GLGraphics.useShader = function(shader) {
+	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
+		clay_opengl_GLGraphics._boundProgram = shader.program;
+		clay_opengl_web_GL.gl.useProgram(shader.program);
+	}
+};
+clay_opengl_GLGraphics.deleteShader = function(shader) {
+	if(clay_opengl_GLGraphics._boundProgram == shader.program) {
+		clay_opengl_GLGraphics._boundProgram = clay_opengl_GLGraphics.NO_PROGRAM;
+	}
+	if(shader.vertShader != clay_opengl_GLGraphics.NO_SHADER) {
+		clay_opengl_web_GL.gl.deleteShader(shader.vertShader);
+		shader.vertShader = clay_opengl_GLGraphics.NO_SHADER;
+	}
+	if(shader.fragShader != clay_opengl_GLGraphics.NO_SHADER) {
+		clay_opengl_web_GL.gl.deleteShader(shader.fragShader);
+		shader.fragShader = clay_opengl_GLGraphics.NO_SHADER;
+	}
+	if(shader.program != clay_opengl_GLGraphics.NO_PROGRAM) {
+		clay_opengl_web_GL.gl.deleteProgram(shader.program);
+		shader.program = clay_opengl_GLGraphics.NO_PROGRAM;
+	}
+};
+clay_opengl_GLGraphics.compileGLShader = function(type,source) {
+	var shader = clay_opengl_web_GL.gl.createShader(type);
+	clay_opengl_web_GL.gl.shaderSource(shader,source);
+	clay_opengl_web_GL.gl.compileShader(shader);
+	var compileLog = clay_opengl_web_GL.gl.getShaderInfoLog(shader);
+	var log = "";
+	if(compileLog != null && compileLog.length > 0) {
+		var isFrag = type == 35632;
+		var typeName = isFrag ? "frag" : "vert";
+		log += "\n\t// start -- (" + typeName + ") compile log --\n";
+		var items = compileLog.split("\n");
+		var _g = [];
+		var _g1 = 0;
+		var _g2 = items;
+		while(_g1 < _g2.length) {
+			var v = _g2[_g1];
+			++_g1;
+			if(StringTools.trim(v) != "") {
+				_g.push(v);
+			}
+		}
+		items = _g;
+		var result = new Array(items.length);
+		var _g = 0;
+		var _g1 = items.length;
+		while(_g < _g1) {
+			var i = _g++;
+			result[i] = "\t\t" + StringTools.trim(items[i]);
+		}
+		items = result;
+		log += items.join("\n");
+		log += "\n\t// end --\n";
+	}
+	if(clay_opengl_web_GL.gl.getShaderParameter(shader,35713) == 0) {
+		clay_Log.error("GL / Failed to compile shader:",{ fileName : "/home/sharpcdf/ceramic/git/clay/src/clay/opengl/GLGraphics.hx", lineNumber : 772, className : "clay.opengl.GLGraphics", methodName : "compileGLShader"});
+		var tmp;
+		if(log.length == 0) {
+			var items = clay_opengl_web_GL.gl.getShaderInfoLog(shader).split("\n");
+			var _g = [];
+			var _g1 = 0;
+			var _g2 = items;
+			while(_g1 < _g2.length) {
+				var v = _g2[_g1];
+				++_g1;
+				if(StringTools.trim(v) != "") {
+					_g.push(v);
+				}
+			}
+			items = _g;
+			var result = new Array(items.length);
+			var _g = 0;
+			var _g1 = items.length;
+			while(_g < _g1) {
+				var i = _g++;
+				result[i] = "\t\t" + StringTools.trim(items[i]);
+			}
+			items = result;
+			tmp = items.join("\n");
+		} else {
+			tmp = log;
+		}
+		clay_Log.error(tmp,{ fileName : "/home/sharpcdf/ceramic/git/clay/src/clay/opengl/GLGraphics.hx", lineNumber : 773, className : "clay.opengl.GLGraphics", methodName : "compileGLShader"});
+		clay_opengl_web_GL.gl.deleteShader(shader);
+		shader = clay_opengl_GLGraphics.NO_SHADER;
+	}
+	return shader;
+};
+clay_opengl_GLGraphics.getUniformLocation = function(shader,name) {
+	return clay_opengl_web_GL.gl.getUniformLocation(shader.program,name);
+};
+clay_opengl_GLGraphics.setIntUniform = function(shader,location,value) {
+	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
+		clay_opengl_GLGraphics._boundProgram = shader.program;
+		clay_opengl_web_GL.gl.useProgram(shader.program);
+	}
+	clay_opengl_web_GL.gl.uniform1i(location,value);
+};
+clay_opengl_GLGraphics.setIntArrayUniform = function(shader,location,value) {
+	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
+		clay_opengl_GLGraphics._boundProgram = shader.program;
+		clay_opengl_web_GL.gl.useProgram(shader.program);
+	}
+	clay_opengl_web_GL.gl.uniform1iv(location,value);
+};
+clay_opengl_GLGraphics.setFloatUniform = function(shader,location,value) {
+	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
+		clay_opengl_GLGraphics._boundProgram = shader.program;
+		clay_opengl_web_GL.gl.useProgram(shader.program);
+	}
+	clay_opengl_web_GL.gl.uniform1f(location,value);
+};
+clay_opengl_GLGraphics.setFloatArrayUniform = function(shader,location,value) {
+	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
+		clay_opengl_GLGraphics._boundProgram = shader.program;
+		clay_opengl_web_GL.gl.useProgram(shader.program);
+	}
+	clay_opengl_web_GL.gl.uniform1fv(location,value);
+};
+clay_opengl_GLGraphics.setVector2Uniform = function(shader,location,x,y) {
+	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
+		clay_opengl_GLGraphics._boundProgram = shader.program;
+		clay_opengl_web_GL.gl.useProgram(shader.program);
+	}
+	clay_opengl_web_GL.gl.uniform2f(location,x,y);
+};
+clay_opengl_GLGraphics.setVector3Uniform = function(shader,location,x,y,z) {
+	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
+		clay_opengl_GLGraphics._boundProgram = shader.program;
+		clay_opengl_web_GL.gl.useProgram(shader.program);
+	}
+	clay_opengl_web_GL.gl.uniform3f(location,x,y,z);
+};
+clay_opengl_GLGraphics.setVector4Uniform = function(shader,location,x,y,z,w) {
+	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
+		clay_opengl_GLGraphics._boundProgram = shader.program;
+		clay_opengl_web_GL.gl.useProgram(shader.program);
+	}
+	clay_opengl_web_GL.gl.uniform4f(location,x,y,z,w);
+};
+clay_opengl_GLGraphics.setColorUniform = function(shader,location,r,g,b,a) {
+	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
+		clay_opengl_GLGraphics._boundProgram = shader.program;
+		clay_opengl_web_GL.gl.useProgram(shader.program);
+	}
+	clay_opengl_web_GL.gl.uniform4f(location,r,g,b,a);
+};
+clay_opengl_GLGraphics.setMatrix4Uniform = function(shader,location,value) {
+	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
+		clay_opengl_GLGraphics._boundProgram = shader.program;
+		clay_opengl_web_GL.gl.useProgram(shader.program);
+	}
+	clay_opengl_web_GL.gl.uniformMatrix4fv(location,false,value);
+};
+clay_opengl_GLGraphics.setTexture2dUniform = function(shader,location,slot,texture) {
+	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
+		clay_opengl_GLGraphics._boundProgram = shader.program;
+		clay_opengl_web_GL.gl.useProgram(shader.program);
+	}
+	clay_opengl_web_GL.gl.uniform1i(location,slot);
+	if(clay_opengl_GLGraphics._activeTextureSlot != slot) {
+		clay_opengl_GLGraphics._activeTextureSlot = slot;
+		while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(clay_opengl_GLGraphics.NO_TEXTURE);
+		clay_opengl_web_GL.gl.activeTexture(33984 + slot);
+	}
+	if(clay_opengl_GLGraphics._boundTexture2D[clay_opengl_GLGraphics._activeTextureSlot] != texture) {
+		clay_opengl_GLGraphics._boundTexture2D[clay_opengl_GLGraphics._activeTextureSlot] = texture;
+		clay_opengl_web_GL.gl.bindTexture(3553,texture);
+	}
+};
+clay_opengl_GLGraphics.setBlendFuncSeparate = function(srcRgb,dstRgb,srcAlpha,dstAlpha) {
+	clay_opengl_web_GL.gl.blendFuncSeparate(srcRgb,dstRgb,srcAlpha,dstAlpha);
+};
+clay_opengl_GLGraphics.ensureNoError = function() {
+	var error = clay_opengl_web_GL.gl.getError();
+	if(error != 0) {
+		throw haxe_Exception.thrown("Failed with GL error: " + error);
+	}
 };
 var backend_TextureId = {};
 var spec_Textures = function() { };
@@ -22879,16 +23424,7 @@ ceramic_App.prototype = $extend(ceramic_Entity.prototype,{
 			}
 			++i;
 		}
-		var array = this._xUpdatesHandlers;
-		var length = len - gap;
-		if(array.length != length) {
-			if(array.length > length) {
-				array.splice(length,array.length - length);
-			} else {
-				var dArray = array;
-				dArray[length - 1] = null;
-			}
-		}
+		ceramic_Extensions.setArrayLength(this._xUpdatesHandlers,len - gap);
 	}
 	,inUpdate: null
 	,shouldUpdateAndDrawAgain: null
@@ -22993,6 +23529,7 @@ ceramic_App.prototype = $extend(ceramic_Entity.prototype,{
 	}
 	,bindSettings: function() {
 		this.settings.onTargetFpsChange(this,function(targetFps,prevTargetFps) {
+			ceramic_App.app.logger.info("Setting targetFps=" + targetFps,{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/App.hx", lineNumber : 874, className : "ceramic.App", methodName : "bindSettings"});
 			ceramic_App.app.backend.setTargetFps(targetFps);
 		});
 		ceramic_App.app.backend.setTargetFps(this.settings.get_targetFps());
@@ -23231,195 +23768,11 @@ ceramic_App.prototype = $extend(ceramic_Entity.prototype,{
 				toDestroy.destroy();
 			}
 			this.syncPendingVisuals();
-			var visuals = this.visuals;
-			var numIterations = 0;
-			var didFlush = false;
-			var didSyncVisuals = false;
-			while(true) {
-				this.visualsContentDirty = false;
-				var _this = this.screen.matrix;
-				if(_this.changedDirty) {
-					_this.changed = _this.tx != _this._txPrev || _this.ty != _this._tyPrev || _this.a != _this._aPrev || _this.b != _this._bPrev || _this.c != _this._cPrev || _this.d != _this._dPrev;
-					_this.changedDirty = false;
-				}
-				if(this.screen.matrix.changed) {
-					this.screen.matrix.emitChange();
-				}
-				var _g1 = 0;
-				var _g2 = visuals.length;
-				while(_g1 < _g2) {
-					var i = _g1++;
-					var visual = visuals[i];
-					if(visual._lifecycleState >= 0) {
-						if(visual.touchableDirty) {
-							visual.computeTouchable();
-						}
-						if(visual.contentDirty) {
-							if(visual.visibilityDirty) {
-								visual.computeVisibility();
-							}
-							if(visual.computedVisible) {
-								visual.computeContent();
-							}
-						}
-					}
-				}
-				var _g3 = 0;
-				var _g4 = visuals.length;
-				while(_g3 < _g4) {
-					var i1 = _g3++;
-					var visual1 = visuals[i1];
-					if(visual1._lifecycleState >= 0 && visual1.transform != null) {
-						var _this1 = visual1.transform;
-						if(_this1.changedDirty) {
-							_this1.changed = _this1.tx != _this1._txPrev || _this1.ty != _this1._tyPrev || _this1.a != _this1._aPrev || _this1.b != _this1._bPrev || _this1.c != _this1._cPrev || _this1.d != _this1._dPrev;
-							_this1.changedDirty = false;
-						}
-						if(visual1.transform.changed) {
-							visual1.transform.emitChange();
-						}
-					}
-				}
-				if(numIterations++ > 9999) {
-					if(didFlush && this.visualsContentDirty) {
-						throw haxe_Exception.thrown("Failed to update visuals because flushImmediate() is being called continuously and visuals content stays dirty.");
-					} else if(didFlush) {
-						throw haxe_Exception.thrown("Failed to update visuals because flushImmediate() is being called continuously.");
-					} else {
-						var _g5 = 0;
-						var _g6 = visuals.length;
-						while(_g5 < _g6) {
-							var i2 = _g5++;
-							var visual2 = visuals[i2];
-							if(visual2._lifecycleState >= 0 && visual2.contentDirty) {
-								throw haxe_Exception.thrown("Failed to update visuals because visuals content stays dirty. (" + Std.string(visual2) + ")");
-							}
-						}
-					}
-				}
-				didFlush = this.flushImmediate();
-				didSyncVisuals = this.syncPendingVisuals();
-				if(!(didFlush || this.visualsContentDirty || didSyncVisuals)) {
-					break;
-				}
-			}
-			var _g7 = 0;
-			var _g8 = this.renderTextures.length;
-			while(_g7 < _g8) {
-				var i3 = _g7++;
-				var renderTexture = this.renderTextures[i3];
-				if(renderTexture.dependingTextures != null) {
-					renderTexture.dependingTextures.clear();
-				}
-			}
-			var _g9 = 0;
-			var _g10 = visuals.length;
-			while(_g9 < _g10) {
-				var i4 = _g9++;
-				var visual3 = visuals[i4];
-				if(visual3._lifecycleState >= 0) {
-					if(visual3.renderTargetDirty) {
-						visual3.computeRenderTarget();
-					}
-					if(visual3.matrixDirty) {
-						visual3.computeMatrix();
-					}
-					if(visual3.visibilityDirty) {
-						visual3.computeVisibility();
-					}
-					if(visual3.computedVisible) {
-						if(visual3.clipDirty) {
-							visual3.computeClip();
-						}
-						if(visual3.computedRenderTarget != null) {
-							if(visual3.asQuad != null) {
-								if(visual3.asQuad._texture != null) {
-									var _this2 = visual3.computedRenderTarget;
-									var texture = visual3.asQuad._texture;
-									if(_this2.dependingTextures == null) {
-										_this2.dependingTextures = new ceramic_IntIntMap();
-									}
-									var value = _this2.dependingTextures.intMap.h[texture.index | 0];
-									var prevValue = value != null ? value : 0;
-									_this2.dependingTextures.set(texture.index,prevValue + 1);
-								}
-							} else if(visual3.asMesh != null) {
-								if(visual3.asMesh.texture != null) {
-									var _this3 = visual3.computedRenderTarget;
-									var texture1 = visual3.asMesh.texture;
-									if(_this3.dependingTextures == null) {
-										_this3.dependingTextures = new ceramic_IntIntMap();
-									}
-									var value1 = _this3.dependingTextures.intMap.h[texture1.index | 0];
-									var prevValue1 = value1 != null ? value1 : 0;
-									_this3.dependingTextures.set(texture1.index,prevValue1 + 1);
-								}
-							}
-						}
-					}
-				}
-			}
+			this.updateVisuals(this.visuals);
 			this.computeHierarchy();
-			var renderTextures = this.renderTextures;
-			if(renderTextures.length != 0) {
-				var len = renderTextures.length;
-				var _g11 = 0;
-				var _g12 = len;
-				while(_g11 < _g12) {
-					var i5 = _g11++;
-					var renderTexture1 = renderTextures[i5];
-					renderTexture1.priority = 0;
-				}
-				var _g13 = 0;
-				var _g14 = len;
-				while(_g13 < _g14) {
-					var i6 = _g13++;
-					var a = renderTextures[i6];
-					var _g15 = 0;
-					var _g16 = len;
-					while(_g15 < _g16) {
-						var j = _g15++;
-						var b = renderTextures[j];
-						var tmp;
-						if(a.dependingTextures != null) {
-							var value2 = a.dependingTextures.intMap.h[b.index | 0];
-							tmp = (value2 != null ? value2 : 0) > 0;
-						} else {
-							tmp = false;
-						}
-						if(tmp && b.priority <= a.priority) {
-							b.priority = a.priority + 1;
-						}
-					}
-				}
-				var _g17 = 0;
-				var _g18 = len;
-				while(_g17 < _g18) {
-					var i7 = _g17++;
-					var a1 = renderTextures[i7];
-					var _g19 = 0;
-					var _g20 = len;
-					while(_g19 < _g20) {
-						var j1 = _g19++;
-						var b1 = renderTextures[j1];
-						var tmp1;
-						if(a1.dependingTextures != null) {
-							var value3 = a1.dependingTextures.intMap.h[b1.index | 0];
-							tmp1 = (value3 != null ? value3 : 0) > 0;
-						} else {
-							tmp1 = false;
-						}
-						if(tmp1 && b1.priority <= a1.priority) {
-							b1.priority = a1.priority + 1;
-						}
-					}
-				}
-			}
+			this.computeRenderTexturesPriority(this.renderTextures);
 			this.syncDestroyedVisuals();
-			var visuals1 = this.visuals;
-			this.emitBeginSortVisuals();
-			ceramic_SortVisuals.rec(visuals1,0,visuals1.length);
-			this.emitFinishSortVisuals();
+			this.sortVisuals(this.visuals);
 			isFirstUpdateInFrame = false;
 			this.emitBeginDraw();
 			this.backend.draw.draw(this.visuals);
@@ -23465,25 +23818,8 @@ ceramic_App.prototype = $extend(ceramic_Entity.prototype,{
 				}
 				++i;
 			}
-			var array = this.destroyedVisuals;
-			if(array.length != 0) {
-				if(array.length > 0) {
-					array.splice(0,array.length);
-				} else {
-					var dArray = array;
-					dArray[-1] = null;
-				}
-			}
-			var array = this.visuals;
-			var length = len - gap;
-			if(array.length != length) {
-				if(array.length > length) {
-					array.splice(length,array.length - length);
-				} else {
-					var dArray = array;
-					dArray[length - 1] = null;
-				}
-			}
+			ceramic_Extensions.setArrayLength(this.destroyedVisuals,0);
+			ceramic_Extensions.setArrayLength(this.visuals,len - gap);
 			this.hierarchyDirty = true;
 		}
 	}
@@ -23493,11 +23829,7 @@ ceramic_App.prototype = $extend(ceramic_Entity.prototype,{
 		var didSyncVisuals = false;
 		while(true) {
 			this.visualsContentDirty = false;
-			var _this = this.screen.matrix;
-			if(_this.changedDirty) {
-				_this.changed = _this.tx != _this._txPrev || _this.ty != _this._tyPrev || _this.a != _this._aPrev || _this.b != _this._bPrev || _this.c != _this._cPrev || _this.d != _this._dPrev;
-				_this.changedDirty = false;
-			}
+			this.screen.matrix.computeChanged();
 			if(this.screen.matrix.changed) {
 				this.screen.matrix.emitChange();
 			}
@@ -23526,11 +23858,7 @@ ceramic_App.prototype = $extend(ceramic_Entity.prototype,{
 				var i1 = _g2++;
 				var visual1 = visuals[i1];
 				if(visual1._lifecycleState >= 0 && visual1.transform != null) {
-					var _this1 = visual1.transform;
-					if(_this1.changedDirty) {
-						_this1.changed = _this1.tx != _this1._txPrev || _this1.ty != _this1._tyPrev || _this1.a != _this1._aPrev || _this1.b != _this1._bPrev || _this1.c != _this1._cPrev || _this1.d != _this1._dPrev;
-						_this1.changedDirty = false;
-					}
+					visual1.transform.computeChanged();
 					if(visual1.transform.changed) {
 						visual1.transform.emitChange();
 					}
@@ -26123,6 +26451,10 @@ var ceramic_BezierEasing = function(x1,y1,x2,y2) {
 		this.mX2 = x2;
 		this.mY2 = y2;
 	}
+	if(!(0 <= this.mX1 && this.mX1 <= 1 && 0 <= this.mX2 && this.mX2 <= 1)) {
+		ceramic_App.app.logger.error("(0 <= mX1 && mX1 <= 1 && 0 <= mX2 && mX2 <= 1)" + (" (" + "bezier x values must be in [0, 1] range" + ")"),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/BezierEasing.hx", lineNumber : 85, className : "ceramic.BezierEasing", methodName : "configure"});
+		throw haxe_Exception.thrown("(0 <= mX1 && mX1 <= 1 && 0 <= mX2 && mX2 <= 1)" + (" (" + "bezier x values must be in [0, 1] range" + ")"));
+	}
 	if(this.mX1 == this.mY1 && this.mX2 == this.mY2) {
 		this.linearEasing = true;
 	} else {
@@ -26227,6 +26559,10 @@ ceramic_BezierEasing.prototype = {
 			this.mY1 = y1;
 			this.mX2 = x2;
 			this.mY2 = y2;
+		}
+		if(!(0 <= this.mX1 && this.mX1 <= 1 && 0 <= this.mX2 && this.mX2 <= 1)) {
+			ceramic_App.app.logger.error("(0 <= mX1 && mX1 <= 1 && 0 <= mX2 && mX2 <= 1)" + (" (" + "bezier x values must be in [0, 1] range" + ")"),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/BezierEasing.hx", lineNumber : 85, className : "ceramic.BezierEasing", methodName : "configure"});
+			throw haxe_Exception.thrown("(0 <= mX1 && mX1 <= 1 && 0 <= mX2 && mX2 <= 1)" + (" (" + "bezier x values must be in [0, 1] range" + ")"));
 		}
 		if(this.mX1 == this.mY1 && this.mX2 == this.mY2) {
 			this.linearEasing = true;
@@ -27485,6 +27821,10 @@ ceramic_CollectionImpl.prototype = {
 		return this.entries.length;
 	}
 	,pushAll: function(entries) {
+		if(this.combinedCollections != null) {
+			ceramic_App.app.logger.error("combinedCollections == null" + (" (" + "Cannot add entries to combined collections" + ")"),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Collection.hx", lineNumber : 105, className : "ceramic.CollectionImpl", methodName : "pushAll"});
+			throw haxe_Exception.thrown("combinedCollections == null" + (" (" + "Cannot add entries to combined collections" + ")"));
+		}
 		var _g = 0;
 		while(_g < entries.length) {
 			var entry = entries[_g];
@@ -27496,6 +27836,10 @@ ceramic_CollectionImpl.prototype = {
 		ceramic_CollectionImpl._lastCheckedCombined = null;
 	}
 	,clear: function() {
+		if(this.combinedCollections != null) {
+			ceramic_App.app.logger.error("combinedCollections == null" + (" (" + "Cannot clear combined collections" + ")"),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Collection.hx", lineNumber : 119, className : "ceramic.CollectionImpl", methodName : "clear"});
+			throw haxe_Exception.thrown("combinedCollections == null" + (" (" + "Cannot clear combined collections" + ")"));
+		}
 		var len = this.entries.length;
 		if(len > 0) {
 			this.entries.splice(0,len);
@@ -27505,12 +27849,20 @@ ceramic_CollectionImpl.prototype = {
 		ceramic_CollectionImpl._lastCheckedCombined = null;
 	}
 	,push: function(entry) {
+		if(this.combinedCollections != null) {
+			ceramic_App.app.logger.error("combinedCollections == null" + (" (" + "Cannot add entries to combined collections" + ")"),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Collection.hx", lineNumber : 134, className : "ceramic.CollectionImpl", methodName : "push"});
+			throw haxe_Exception.thrown("combinedCollections == null" + (" (" + "Cannot add entries to combined collections" + ")"));
+		}
 		this.entries.push(entry);
 		this.indexDirty = true;
 		this.lastChange = this.lastChange > 999999999 ? -999999999 : this.lastChange + 1;
 		ceramic_CollectionImpl._lastCheckedCombined = null;
 	}
 	,remove: function(entry) {
+		if(this.combinedCollections != null) {
+			ceramic_App.app.logger.error("combinedCollections == null" + (" (" + "Cannot remove entries from combined collections" + ")"),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Collection.hx", lineNumber : 145, className : "ceramic.CollectionImpl", methodName : "remove"});
+			throw haxe_Exception.thrown("combinedCollections == null" + (" (" + "Cannot remove entries from combined collections" + ")"));
+		}
 		HxOverrides.remove(this.entries,entry);
 		this.indexDirty = true;
 		this.lastChange = this.lastChange > 999999999 ? -999999999 : this.lastChange + 1;
@@ -27660,6 +28012,10 @@ ceramic_CollectionImpl.prototype = {
 		this.indexDirty = false;
 	}
 	,computeEntries: function() {
+		if(this.combinedCollections == null) {
+			ceramic_App.app.logger.error("combinedCollections != null" + (" (" + "Entries only need to be computed on combined collections" + ")"),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Collection.hx", lineNumber : 262, className : "ceramic.CollectionImpl", methodName : "computeEntries"});
+			throw haxe_Exception.thrown("combinedCollections != null" + (" (" + "Entries only need to be computed on combined collections" + ")"));
+		}
 		this.entries = [];
 		var _g = 0;
 		var _g1 = this.combinedCollections.length;
@@ -30468,15 +30824,7 @@ ceramic_Extensions.removeNullElements = function(arr) {
 		}
 		++i;
 	}
-	var length = len - gap;
-	if(arr.length != length) {
-		if(arr.length > length) {
-			arr.splice(length,arr.length - length);
-		} else {
-			var dArray = arr;
-			dArray[length - 1] = null;
-		}
-	}
+	ceramic_Extensions.setArrayLength(arr,len - gap);
 };
 ceramic_Extensions.setProperty = function(instance,field,value) {
 	Reflect.setProperty(instance,field,value);
@@ -30499,6 +30847,10 @@ ceramic_FieldInfo.types = function(targetClass,recursive) {
 		var firstTry = true;
 		while(clazz != null) {
 			var storedFieldInfo = Reflect.field(clazz,"_fieldInfo");
+			if(!(storedFieldInfo != null || !firstTry)) {
+				ceramic_App.app.logger.error("storedFieldInfo != null || !firstTry" + (" (" + ("Missing _fieldInfo on class " + targetClass) + ")"),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/FieldInfo.hx", lineNumber : 29, className : "ceramic.FieldInfo", methodName : "types"});
+				throw haxe_Exception.thrown("storedFieldInfo != null || !firstTry" + (" (" + ("Missing _fieldInfo on class " + targetClass) + ")"));
+			}
 			firstTry = false;
 			if(storedFieldInfo != null) {
 				var access = storedFieldInfo;
@@ -34403,15 +34755,7 @@ ceramic_Fragment.prototype = $extend(ceramic_Layer.prototype,{
 					var i = _g++;
 					ceramic_Fragment._usedKeyframes[i] = null;
 				}
-				var array = ceramic_Fragment._usedKeyframes;
-				if(array.length != 0) {
-					if(array.length > 0) {
-						array.splice(0,array.length);
-					} else {
-						var dArray = array;
-						dArray[-1] = null;
-					}
-				}
+				ceramic_Extensions.setArrayLength(ceramic_Fragment._usedKeyframes,0);
 			}
 			var prevIndex = -1;
 			var isSorted = true;
@@ -34493,15 +34837,7 @@ ceramic_Fragment.prototype = $extend(ceramic_Layer.prototype,{
 					var i = _g++;
 					ceramic_Fragment._usedKeyframes[i] = null;
 				}
-				var array = ceramic_Fragment._usedKeyframes;
-				if(array.length != 0) {
-					if(array.length > 0) {
-						array.splice(0,array.length);
-					} else {
-						var dArray = array;
-						dArray[-1] = null;
-					}
-				}
+				ceramic_Extensions.setArrayLength(ceramic_Fragment._usedKeyframes,0);
 			}
 			timelineTrack.apply();
 		}
@@ -35429,14 +35765,7 @@ ceramic_Group.prototype = $extend(ceramic_Entity.prototype,{
 				item.offDestroy($bind(this,this.itemDestroyed));
 				item.destroy();
 			}
-			if(items.length != 0) {
-				if(items.length > 0) {
-					items.splice(0,items.length);
-				} else {
-					var dArray = items;
-					dArray[-1] = null;
-				}
-			}
+			ceramic_Extensions.setArrayLength(items,0);
 			pool.release(tmp);
 		}
 	}
@@ -36112,22 +36441,7 @@ ceramic_ImageAsset.prototype = $extend(ceramic_Asset.prototype,{
 							} else if(visual.asMesh != null) {
 								var mesh = visual.asMesh;
 								if(mesh.texture == prevTexture) {
-									var texture1 = _gthis.get_texture();
-									if(mesh.texture != texture1) {
-										if(mesh.texture != null) {
-											mesh.texture.offDestroy($bind(mesh,mesh.textureDestroyed));
-											if(mesh.texture.asset != null) {
-												mesh.texture.asset.release();
-											}
-										}
-										mesh.texture = texture1;
-										if(mesh.texture != null) {
-											mesh.texture.onDestroy(mesh,$bind(mesh,mesh.textureDestroyed));
-											if(mesh.texture.asset != null) {
-												mesh.texture.asset.retain();
-											}
-										}
-									}
+									mesh.set_texture(_gthis.get_texture());
 								}
 							}
 						}
@@ -38999,15 +39313,7 @@ ceramic_IntMap.prototype = {
 		this.values = this1;
 		this.nextFreeIndex = 0;
 		if(this.iterableKeys != null) {
-			var array = this.iterableKeys;
-			if(array.length != 0) {
-				if(array.length > 0) {
-					array.splice(0,array.length);
-				} else {
-					var dArray = array;
-					dArray[-1] = null;
-				}
-			}
+			ceramic_Extensions.setArrayLength(this.iterableKeys,0);
 		}
 	}
 	,iterator: function() {
@@ -40358,22 +40664,7 @@ ceramic_Mesh.prototype = $extend(ceramic_Visual.prototype,{
 			return;
 		}
 		this._lifecycleState = -2;
-		var texture = null;
-		if(this.texture != texture) {
-			if(this.texture != null) {
-				this.texture.offDestroy($bind(this,this.textureDestroyed));
-				if(this.texture.asset != null) {
-					this.texture.asset.release();
-				}
-			}
-			this.texture = texture;
-			if(this.texture != null) {
-				this.texture.onDestroy(this,$bind(this,this.textureDestroyed));
-				if(this.texture.asset != null) {
-					this.texture.asset.retain();
-				}
-			}
-		}
+		this.set_texture(null);
 		this._lifecycleState = -1;
 		ceramic_Visual.prototype.destroy.call(this);
 	}
@@ -40429,6 +40720,10 @@ ceramic_Mesh.prototype = $extend(ceramic_Visual.prototype,{
 		if(this.texture == texture) {
 			return texture;
 		}
+		if(!(texture == null || texture._lifecycleState >= 0)) {
+			ceramic_App.app.logger.error("texture == null || !texture.destroyed" + (" (" + ("Cannot assign destroyed texture: " + Std.string(texture)) + ")"),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Mesh.hx", lineNumber : 136, className : "ceramic.Mesh", methodName : "set_texture"});
+			throw haxe_Exception.thrown("texture == null || !texture.destroyed" + (" (" + ("Cannot assign destroyed texture: " + Std.string(texture)) + ")"));
+		}
 		if(this.texture != null) {
 			this.texture.offDestroy($bind(this,this.textureDestroyed));
 			if(this.texture.asset != null) {
@@ -40446,22 +40741,7 @@ ceramic_Mesh.prototype = $extend(ceramic_Visual.prototype,{
 	}
 	,uvs: null
 	,textureDestroyed: function(_) {
-		var texture = null;
-		if(this.texture != texture) {
-			if(this.texture != null) {
-				this.texture.offDestroy($bind(this,this.textureDestroyed));
-				if(this.texture.asset != null) {
-					this.texture.asset.release();
-				}
-			}
-			this.texture = texture;
-			if(this.texture != null) {
-				this.texture.onDestroy(this,$bind(this,this.textureDestroyed));
-				if(this.texture.asset != null) {
-					this.texture.asset.retain();
-				}
-			}
-		}
+		this.set_texture(null);
 	}
 	,hitTest: function(x,y,matrix) {
 		if(this.complexHit) {
@@ -40611,26 +40891,10 @@ ceramic_Mesh.prototype = $extend(ceramic_Visual.prototype,{
 			}
 		}
 		if(this.vertices.length > v) {
-			var array = this.vertices;
-			if(array.length != v) {
-				if(array.length > v) {
-					array.splice(v,array.length - v);
-				} else {
-					var dArray = array;
-					dArray[v - 1] = null;
-				}
-			}
+			ceramic_Extensions.setArrayLength(this.vertices,v);
 		}
 		if(this.indices.length > i) {
-			var array = this.indices;
-			if(array.length != i) {
-				if(array.length > i) {
-					array.splice(i,array.length - i);
-				} else {
-					var dArray = array;
-					dArray[i - 1] = null;
-				}
-			}
+			ceramic_Extensions.setArrayLength(this.indices,i);
 		}
 	}
 	,gridFromTexture: function(cols,rows,texture) {
@@ -40661,15 +40925,7 @@ ceramic_Mesh.prototype = $extend(ceramic_Visual.prototype,{
 			}
 		}
 		if(this.uvs.length > u) {
-			var array = this.uvs;
-			if(array.length != u) {
-				if(array.length > u) {
-					array.splice(u,array.length - u);
-				} else {
-					var dArray = array;
-					dArray[u - 1] = null;
-				}
-			}
+			ceramic_Extensions.setArrayLength(this.uvs,u);
 		}
 	}
 	,__class__: ceramic_Mesh
@@ -41429,7 +41685,7 @@ var ceramic_Renderer = function() {
 	this.lastComputedBlending = 1;
 	this.lastRenderTarget = null;
 	this.lastShader = null;
-	this.lastTextureId = null;
+	this.lastTextureId = backend_TextureId.DEFAULT;
 	this.lastTexture = null;
 	this.stencilClip = false;
 	this.customFloatAttributesSize = 0;
@@ -41486,7 +41742,7 @@ ceramic_Renderer.prototype = $extend(ceramic_Entity.prototype,{
 		this.quad = null;
 		this.mesh = null;
 		this.lastTexture = null;
-		this.lastTextureId = null;
+		this.lastTextureId = backend_TextureId.DEFAULT;
 		this.lastShader = null;
 		this.lastRenderTarget = null;
 		this.lastComputedBlending = 1;
@@ -41519,7 +41775,7 @@ ceramic_Renderer.prototype = $extend(ceramic_Entity.prototype,{
 		backend_Draw._activeTextureSlot = 0;
 		if(clay_opengl_GLGraphics._activeTextureSlot != 0) {
 			clay_opengl_GLGraphics._activeTextureSlot = 0;
-			while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(null);
+			while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(clay_opengl_GLGraphics.NO_TEXTURE);
 			clay_opengl_web_GL.gl.activeTexture(33984);
 		}
 		this.activeTextureSlot = 0;
@@ -41637,7 +41893,7 @@ ceramic_Renderer.prototype = $extend(ceramic_Entity.prototype,{
 		backend_Draw._activeTextureSlot = 0;
 		if(clay_opengl_GLGraphics._activeTextureSlot != 0) {
 			clay_opengl_GLGraphics._activeTextureSlot = 0;
-			while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(null);
+			while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(clay_opengl_GLGraphics.NO_TEXTURE);
 			clay_opengl_web_GL.gl.activeTexture(33984);
 		}
 		this.activeTextureSlot = 0;
@@ -42373,7 +42629,7 @@ ceramic_Renderer.prototype = $extend(ceramic_Entity.prototype,{
 				++n;
 			}
 		}
-		clay_opengl_web_GL.gl.bindBuffer(34963,null);
+		clay_opengl_web_GL.gl.bindBuffer(34963,clay_opengl_GLGraphics.NO_BUFFER);
 		clay_opengl_web_GL.gl.deleteBuffer(ib);
 		if(backend_Draw._currentRenderTarget != null) {
 			backend_Draw._didUpdateCurrentRenderTarget = true;
@@ -42528,7 +42784,7 @@ ceramic_Renderer.prototype = $extend(ceramic_Entity.prototype,{
 		backend_Draw._activeTextureSlot = 0;
 		if(clay_opengl_GLGraphics._activeTextureSlot != 0) {
 			clay_opengl_GLGraphics._activeTextureSlot = 0;
-			while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(null);
+			while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(clay_opengl_GLGraphics.NO_TEXTURE);
 			clay_opengl_web_GL.gl.activeTexture(33984);
 		}
 		this.activeTextureSlot = 0;
@@ -42551,7 +42807,7 @@ ceramic_Renderer.prototype = $extend(ceramic_Entity.prototype,{
 			}
 		} else {
 			this.lastTexture = null;
-			this.lastTextureId = null;
+			this.lastTextureId = backend_TextureId.DEFAULT;
 			var backendItem = ceramic_App.app.defaultWhiteTexture.backendItem;
 			var textureId = backendItem.textureId;
 			if(clay_opengl_GLGraphics._boundTexture2D[clay_opengl_GLGraphics._activeTextureSlot] != textureId) {
@@ -42601,7 +42857,7 @@ ceramic_Renderer.prototype = $extend(ceramic_Entity.prototype,{
 					backend_Draw._activeTextureSlot = slot;
 					if(clay_opengl_GLGraphics._activeTextureSlot != slot) {
 						clay_opengl_GLGraphics._activeTextureSlot = slot;
-						while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(null);
+						while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(clay_opengl_GLGraphics.NO_TEXTURE);
 						clay_opengl_web_GL.gl.activeTexture(33984 + slot);
 					}
 					this.activeTextureSlot = slot;
@@ -42616,7 +42872,7 @@ ceramic_Renderer.prototype = $extend(ceramic_Entity.prototype,{
 				backend_Draw._activeTextureSlot = slot;
 				if(clay_opengl_GLGraphics._activeTextureSlot != slot) {
 					clay_opengl_GLGraphics._activeTextureSlot = slot;
-					while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(null);
+					while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(clay_opengl_GLGraphics.NO_TEXTURE);
 					clay_opengl_web_GL.gl.activeTexture(33984 + slot);
 				}
 				this.activeTextureSlot = slot;
@@ -42631,7 +42887,7 @@ ceramic_Renderer.prototype = $extend(ceramic_Entity.prototype,{
 			backend_Draw._activeTextureSlot = slot;
 			if(clay_opengl_GLGraphics._activeTextureSlot != slot) {
 				clay_opengl_GLGraphics._activeTextureSlot = slot;
-				while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(null);
+				while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(clay_opengl_GLGraphics.NO_TEXTURE);
 				clay_opengl_web_GL.gl.activeTexture(33984 + slot);
 			}
 			var backendItem = ceramic_App.app.defaultWhiteTexture.backendItem;
@@ -42644,7 +42900,7 @@ ceramic_Renderer.prototype = $extend(ceramic_Entity.prototype,{
 		backend_Draw._activeTextureSlot = 0;
 		if(clay_opengl_GLGraphics._activeTextureSlot != 0) {
 			clay_opengl_GLGraphics._activeTextureSlot = 0;
-			while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(null);
+			while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(clay_opengl_GLGraphics.NO_TEXTURE);
 			clay_opengl_web_GL.gl.activeTexture(33984);
 		}
 		this.activeTextureSlot = 0;
@@ -48698,24 +48954,31 @@ ceramic_Screen.prototype = $extend(ceramic_Entity.prototype,{
 		ceramic_App.app.backend.screen.onResize(this,$bind(this,this.resize));
 		this.resize();
 		ceramic_App.app.settings.onBackgroundChange(this,function(background,prevBackground) {
+			ceramic_App.app.logger.info("Setting background=" + (background == null ? "null" : background == -1 ? "NONE" : "0x" + StringTools.hex(background >> 16 & 255,2) + StringTools.hex(background >> 8 & 255,2) + StringTools.hex(background & 255,2)),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Screen.hx", lineNumber : 270, className : "ceramic.Screen", methodName : "backendReady"});
 			ceramic_App.app.backend.screen.setBackground(background);
 		});
 		ceramic_App.app.settings.onTitleChange(this,function(title,prevTitle) {
+			ceramic_App.app.logger.info("Setting title=" + title,{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Screen.hx", lineNumber : 274, className : "ceramic.Screen", methodName : "backendReady"});
 			ceramic_App.app.backend.screen.setWindowTitle(title);
 		});
 		ceramic_App.app.settings.onFullscreenChange(this,function(fullscreen,prevFullscreen) {
+			ceramic_App.app.logger.info("Setting fullscreen=" + (fullscreen == null ? "null" : "" + fullscreen),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Screen.hx", lineNumber : 278, className : "ceramic.Screen", methodName : "backendReady"});
 			ceramic_App.app.backend.screen.setWindowFullscreen(fullscreen);
 		});
 		ceramic_App.app.settings.onScalingChange(this,function(scaling,prevScaling) {
+			ceramic_App.app.logger.info("Setting scaling=" + Std.string(scaling),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Screen.hx", lineNumber : 282, className : "ceramic.Screen", methodName : "backendReady"});
 			_gthis.resize();
 		});
 		ceramic_App.app.settings.onTargetWidthChange(this,function(targetWidth,prevTargetWidth) {
+			ceramic_App.app.logger.info("Setting targetWidth=" + targetWidth,{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Screen.hx", lineNumber : 286, className : "ceramic.Screen", methodName : "backendReady"});
 			_gthis.resize();
 		});
 		ceramic_App.app.settings.onTargetHeightChange(this,function(targetHeight,prevTargetWidth) {
+			ceramic_App.app.logger.info("Setting targetHeight=" + targetHeight,{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Screen.hx", lineNumber : 290, className : "ceramic.Screen", methodName : "backendReady"});
 			_gthis.resize();
 		});
 		ceramic_App.app.settings.onTargetDensityChange(this,function(targetDensity,prevTargetDensity) {
+			ceramic_App.app.logger.info("Setting targetDensity=" + targetDensity,{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Screen.hx", lineNumber : 294, className : "ceramic.Screen", methodName : "backendReady"});
 			_gthis.updateTexturesDensity();
 		});
 		this.matrix.onChange(this,function() {
@@ -58994,6 +59257,18 @@ ceramic_SpriteSheet.prototype = $extend(tracker_Model.prototype,{
 		this.set_animations(animations);
 	}
 	,_addGridAnimation: function(name,cells,frameDuration) {
+		if(this.unobservedGridWidth <= 0) {
+			ceramic_App.app.logger.error("unobservedGridWidth > 0" + (" (" + ("gridWidth (" + this.unobservedGridWidth + ") must be above zero before adding grid animation") + ")"),{ fileName : "/home/sharpcdf/ceramic/plugins/sprite/runtime/src/ceramic/SpriteSheet.hx", lineNumber : 161, className : "ceramic.SpriteSheet", methodName : "_addGridAnimation"});
+			throw haxe_Exception.thrown("unobservedGridWidth > 0" + (" (" + ("gridWidth (" + this.unobservedGridWidth + ") must be above zero before adding grid animation") + ")"));
+		}
+		if(this.unobservedGridHeight <= 0) {
+			ceramic_App.app.logger.error("unobservedGridHeight > 0" + (" (" + ("gridHeight (" + this.unobservedGridHeight + ") must be above zero before adding grid animation") + ")"),{ fileName : "/home/sharpcdf/ceramic/plugins/sprite/runtime/src/ceramic/SpriteSheet.hx", lineNumber : 162, className : "ceramic.SpriteSheet", methodName : "_addGridAnimation"});
+			throw haxe_Exception.thrown("unobservedGridHeight > 0" + (" (" + ("gridHeight (" + this.unobservedGridHeight + ") must be above zero before adding grid animation") + ")"));
+		}
+		if(this.unobservedAtlas == null) {
+			ceramic_App.app.logger.error("unobservedAtlas != null" + (" (" + "an atlas/texture must be defined before adding grid animation" + ")"),{ fileName : "/home/sharpcdf/ceramic/plugins/sprite/runtime/src/ceramic/SpriteSheet.hx", lineNumber : 163, className : "ceramic.SpriteSheet", methodName : "_addGridAnimation"});
+			throw haxe_Exception.thrown("unobservedAtlas != null" + (" (" + "an atlas/texture must be defined before adding grid animation" + ")"));
+		}
 		var animation = new ceramic_SpriteSheetAnimation();
 		animation.set_name(name);
 		var gridWidth = this.unobservedGridWidth;
@@ -61131,6 +61406,10 @@ ceramic_Text.prototype = $extend(ceramic_Visual.prototype,{
 	}
 	,content: null
 	,set_content: function(content) {
+		if(content == null) {
+			ceramic_App.app.logger.error("content != null" + (" (" + "Text.content should not be null" + ")"),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Text.hx", lineNumber : 46, className : "ceramic.Text", methodName : "set_content"});
+			throw haxe_Exception.thrown("content != null" + (" (" + "Text.content should not be null" + ")"));
+		}
 		if(this.content == content) {
 			return content;
 		}
@@ -65523,24 +65802,8 @@ ceramic_Timeline.prototype = $extend(ceramic_Entity.prototype,{
 	}
 	,animate: function(name,complete) {
 		if(this.completeHandlers != null && this.completeHandlers.length > 0) {
-			var array = this.completeHandlers;
-			if(array.length != 0) {
-				if(array.length > 0) {
-					array.splice(0,array.length);
-				} else {
-					var dArray = array;
-					dArray[-1] = null;
-				}
-			}
-			var array = this.completeHandlerIndexes;
-			if(array.length != 0) {
-				if(array.length > 0) {
-					array.splice(0,array.length);
-				} else {
-					var dArray = array;
-					dArray[-1] = null;
-				}
-			}
+			ceramic_Extensions.setArrayLength(this.completeHandlers,0);
+			ceramic_Extensions.setArrayLength(this.completeHandlerIndexes,0);
 		}
 		var index = this.indexOfLabel(name);
 		if(index != -1) {
@@ -65900,24 +66163,8 @@ ceramic_Timeline.prototype = $extend(ceramic_Entity.prototype,{
 	}
 	,clearCompleteHandlers: function() {
 		if(this.completeHandlers != null && this.completeHandlers.length > 0) {
-			var array = this.completeHandlers;
-			if(array.length != 0) {
-				if(array.length > 0) {
-					array.splice(0,array.length);
-				} else {
-					var dArray = array;
-					dArray[-1] = null;
-				}
-			}
-			var array = this.completeHandlerIndexes;
-			if(array.length != 0) {
-				if(array.length > 0) {
-					array.splice(0,array.length);
-				} else {
-					var dArray = array;
-					dArray[-1] = null;
-				}
-			}
+			ceramic_Extensions.setArrayLength(this.completeHandlers,0);
+			ceramic_Extensions.setArrayLength(this.completeHandlerIndexes,0);
 		}
 	}
 	,didEmitEndLabel: function(index,name) {
@@ -65942,24 +66189,8 @@ ceramic_Timeline.prototype = $extend(ceramic_Entity.prototype,{
 				}
 			}
 			if(this.completeHandlers != null && this.completeHandlers.length > 0) {
-				var array = this.completeHandlers;
-				if(array.length != 0) {
-					if(array.length > 0) {
-						array.splice(0,array.length);
-					} else {
-						var dArray = array;
-						dArray[-1] = null;
-					}
-				}
-				var array = this.completeHandlerIndexes;
-				if(array.length != 0) {
-					if(array.length > 0) {
-						array.splice(0,array.length);
-					} else {
-						var dArray = array;
-						dArray[-1] = null;
-					}
-				}
+				ceramic_Extensions.setArrayLength(this.completeHandlers,0);
+				ceramic_Extensions.setArrayLength(this.completeHandlerIndexes,0);
 			}
 			var _g = 0;
 			var _g1 = toCallLen;
@@ -67736,14 +67967,7 @@ ceramic_TimelineFloatArrayTrack.prototype = $extend(ceramic_TimelineTrack.protot
 				var array = this.after.value;
 				var maxLen = array.length;
 				if(result.length > maxLen) {
-					if(result.length != maxLen) {
-						if(result.length > maxLen) {
-							result.splice(maxLen,result.length - maxLen);
-						} else {
-							var dArray = result;
-							dArray[maxLen - 1] = null;
-						}
-					}
+					ceramic_Extensions.setArrayLength(result,maxLen);
 				}
 				var resLen = result.length;
 				var _g = 0;
@@ -67767,14 +67991,7 @@ ceramic_TimelineFloatArrayTrack.prototype = $extend(ceramic_TimelineTrack.protot
 				var array = this.before.value;
 				var maxLen = array.length;
 				if(result.length > maxLen) {
-					if(result.length != maxLen) {
-						if(result.length > maxLen) {
-							result.splice(maxLen,result.length - maxLen);
-						} else {
-							var dArray = result;
-							dArray[maxLen - 1] = null;
-						}
-					}
+					ceramic_Extensions.setArrayLength(result,maxLen);
 				}
 				var resLen = result.length;
 				var _g = 0;
@@ -67802,14 +68019,7 @@ ceramic_TimelineFloatArrayTrack.prototype = $extend(ceramic_TimelineTrack.protot
 				var fromLen = from.length;
 				var maxLen = toLen > fromLen ? fromLen : toLen;
 				if(result.length > maxLen) {
-					if(result.length != maxLen) {
-						if(result.length > maxLen) {
-							result.splice(maxLen,result.length - maxLen);
-						} else {
-							var dArray = result;
-							dArray[maxLen - 1] = null;
-						}
-					}
+					ceramic_Extensions.setArrayLength(result,maxLen);
 				}
 				var resLen = result.length;
 				var _g = 0;
@@ -67836,14 +68046,7 @@ ceramic_TimelineFloatArrayTrack.prototype = $extend(ceramic_TimelineTrack.protot
 			var array = this.after.value;
 			var maxLen = array.length;
 			if(result.length > maxLen) {
-				if(result.length != maxLen) {
-					if(result.length > maxLen) {
-						result.splice(maxLen,result.length - maxLen);
-					} else {
-						var dArray = result;
-						dArray[maxLen - 1] = null;
-					}
-				}
+				ceramic_Extensions.setArrayLength(result,maxLen);
 			}
 			var resLen = result.length;
 			var _g = 0;
@@ -67867,14 +68070,7 @@ ceramic_TimelineFloatArrayTrack.prototype = $extend(ceramic_TimelineTrack.protot
 			var array = this.before.value;
 			var maxLen = array.length;
 			if(result.length > maxLen) {
-				if(result.length != maxLen) {
-					if(result.length > maxLen) {
-						result.splice(maxLen,result.length - maxLen);
-					} else {
-						var dArray = result;
-						dArray[maxLen - 1] = null;
-					}
-				}
+				ceramic_Extensions.setArrayLength(result,maxLen);
 			}
 			var resLen = result.length;
 			var _g = 0;
@@ -68867,14 +69063,7 @@ ceramic_Timelines.prototype = $extend(ceramic_Entity.prototype,{
 				var value = track.value;
 				var valueLen = value.length;
 				if(array.length != valueLen) {
-					if(array.length != valueLen) {
-						if(array.length > valueLen) {
-							array.splice(valueLen,array.length - valueLen);
-						} else {
-							var dArray = array;
-							dArray[valueLen - 1] = null;
-						}
-					}
+					ceramic_Extensions.setArrayLength(array,valueLen);
 				}
 				var _g = 0;
 				var _g1 = valueLen;
@@ -69000,6 +69189,10 @@ ceramic_Timer.interval = function(owner,seconds,callback) {
 	return ceramic_Timer.schedule(owner,seconds,callback,seconds);
 };
 ceramic_Timer.schedule = function(owner,seconds,callback,interval) {
+	if(callback == null) {
+		ceramic_App.app.logger.error("callback != null" + (" (" + "Callback must not be null!" + ")"),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Timer.hx", lineNumber : 137, className : "ceramic.Timer", methodName : "schedule"});
+		throw haxe_Exception.thrown("callback != null" + (" (" + "Callback must not be null!" + ")"));
+	}
 	var time = ceramic_Timer.now + seconds;
 	ceramic_Timer.next = Math.min(time,ceramic_Timer.next);
 	var timerCallback = new ceramic_TimerCallback();
@@ -71312,6 +71505,14 @@ ceramic_Utils.cosRatio = function(value) {
 ceramic_Utils.valueFromInterpolatedKey = function(keys,values,interpolatedKey) {
 	var len = keys.length;
 	var lenMinus1 = len - 1;
+	if(len <= 0) {
+		ceramic_App.app.logger.error("len > 0" + (" (" + "Keys array must not be empty" + ")"),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Utils.hx", lineNumber : 543, className : "ceramic.Utils", methodName : "valueFromInterpolatedKey"});
+		throw haxe_Exception.thrown("len > 0" + (" (" + "Keys array must not be empty" + ")"));
+	}
+	if(values.length < len) {
+		ceramic_App.app.logger.error("values.length >= len" + (" (" + "Values array must be of equal or higher size of keys array" + ")"),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Utils.hx", lineNumber : 544, className : "ceramic.Utils", methodName : "valueFromInterpolatedKey"});
+		throw haxe_Exception.thrown("values.length >= len" + (" (" + "Values array must be of equal or higher size of keys array" + ")"));
+	}
 	var value = 0.0;
 	if(interpolatedKey < keys[0]) {
 		value = values[0];
@@ -71332,6 +71533,10 @@ ceramic_Utils.valueFromInterpolatedKey = function(keys,values,interpolatedKey) {
 ceramic_Utils.yFromInterpolatedX = function(points,interpolatedX) {
 	var len = points.length;
 	var lenMinus1 = len - 2;
+	if(len <= 1) {
+		ceramic_App.app.logger.error("len > 1" + (" (" + "Points array must not be empty" + ")"),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/Utils.hx", lineNumber : 580, className : "ceramic.Utils", methodName : "yFromInterpolatedX"});
+		throw haxe_Exception.thrown("len > 1" + (" (" + "Points array must not be empty" + ")"));
+	}
 	var y = 0.0;
 	if(interpolatedX < points[0]) {
 		y = points[1];
@@ -71688,11 +71893,7 @@ ceramic_VisualTransition.prototype = $extend(ceramic_Entity.prototype,{
 		cb(props);
 		if(!this.transformChanged && this.transformTarget != null) {
 			if(this.transformTarget.changedDirty) {
-				var _this = this.transformTarget;
-				if(_this.changedDirty) {
-					_this.changed = _this.tx != _this._txPrev || _this.ty != _this._tyPrev || _this.a != _this._aPrev || _this.b != _this._bPrev || _this.c != _this._cPrev || _this.d != _this._dPrev;
-					_this.changedDirty = false;
-				}
+				this.transformTarget.computeChanged();
 			}
 			if(this.transformTarget.changed) {
 				this.transformChanged = true;
@@ -72734,6 +72935,10 @@ ceramic_WatchDirectory.prototype = $extend(ceramic_Entity.prototype,{
 		}
 		if(this.startingToWatchDirectories == null) {
 			this.startingToWatchDirectories = new haxe_ds_StringMap();
+		}
+		if(!(!Object.prototype.hasOwnProperty.call(this.watchedDirectories.h,path) && !Object.prototype.hasOwnProperty.call(this.startingToWatchDirectories.h,path))) {
+			ceramic_App.app.logger.error("!watchedDirectories.exists(path) && !startingToWatchDirectories.exists(path)" + (" (" + ("Directory is already being watched at path " + path) + ")"),{ fileName : "/home/sharpcdf/ceramic/runtime/src/ceramic/WatchDirectory.hx", lineNumber : 57, className : "ceramic.WatchDirectory", methodName : "watchDirectory"});
+			throw haxe_Exception.thrown("!watchedDirectories.exists(path) && !startingToWatchDirectories.exists(path)" + (" (" + ("Directory is already being watched at path " + path) + ")"));
 		}
 		this.startingToWatchDirectories.h[path] = true;
 		ceramic_Runner.runInBackground(function() {
@@ -75129,7 +75334,7 @@ var clay_graphics_Texture = function() {
 	this.type = 3553;
 	this.format = 6408;
 	this.compressed = false;
-	this.textureId = null;
+	this.textureId = clay_opengl_GLGraphics.NO_TEXTURE;
 	clay_Resource.call(this);
 	this.index = clay_graphics_Texture._nextIndex++;
 };
@@ -75170,7 +75375,7 @@ clay_graphics_Texture.prototype = $extend(clay_Resource.prototype,{
 	,pixels: null
 	,filterMin: null
 	,set_filterMin: function(filterMin) {
-		if(this.textureId != null) {
+		if(this.textureId != clay_opengl_GLGraphics.NO_TEXTURE) {
 			this.bind();
 			clay_opengl_web_GL.gl.texParameteri(3553,10241,filterMin);
 		}
@@ -75178,7 +75383,7 @@ clay_graphics_Texture.prototype = $extend(clay_Resource.prototype,{
 	}
 	,filterMag: null
 	,set_filterMag: function(filterMag) {
-		if(this.textureId != null) {
+		if(this.textureId != clay_opengl_GLGraphics.NO_TEXTURE) {
 			this.bind();
 			clay_opengl_web_GL.gl.texParameteri(3553,10240,filterMag);
 		}
@@ -75186,7 +75391,7 @@ clay_graphics_Texture.prototype = $extend(clay_Resource.prototype,{
 	}
 	,wrapS: null
 	,set_wrapS: function(wrapS) {
-		if(this.textureId != null) {
+		if(this.textureId != clay_opengl_GLGraphics.NO_TEXTURE) {
 			this.bind();
 			clay_opengl_web_GL.gl.texParameteri(3553,10242,wrapS);
 		}
@@ -75194,7 +75399,7 @@ clay_graphics_Texture.prototype = $extend(clay_Resource.prototype,{
 	}
 	,wrapT: null
 	,set_wrapT: function(wrapT) {
-		if(this.textureId != null) {
+		if(this.textureId != clay_opengl_GLGraphics.NO_TEXTURE) {
 			this.bind();
 			clay_opengl_web_GL.gl.texParameteri(3553,10243,wrapT);
 		}
@@ -75221,7 +75426,7 @@ clay_graphics_Texture.prototype = $extend(clay_Resource.prototype,{
 		}
 	}
 	,destroy: function() {
-		if(this.textureId != null) {
+		if(this.textureId != clay_opengl_GLGraphics.NO_TEXTURE) {
 			var textureId = this.textureId;
 			clay_opengl_web_GL.gl.deleteTexture(textureId);
 			var _g = 0;
@@ -75229,10 +75434,10 @@ clay_graphics_Texture.prototype = $extend(clay_Resource.prototype,{
 			while(_g < _g1) {
 				var i = _g++;
 				if(clay_opengl_GLGraphics._boundTexture2D[i] == textureId) {
-					clay_opengl_GLGraphics._boundTexture2D[i] = null;
+					clay_opengl_GLGraphics._boundTexture2D[i] = clay_opengl_GLGraphics.NO_TEXTURE;
 				}
 			}
-			this.textureId = null;
+			this.textureId = clay_opengl_GLGraphics.NO_TEXTURE;
 		}
 	}
 	,bind: function(slot) {
@@ -75242,7 +75447,7 @@ clay_graphics_Texture.prototype = $extend(clay_Resource.prototype,{
 		if(slot != -1) {
 			if(clay_opengl_GLGraphics._activeTextureSlot != slot) {
 				clay_opengl_GLGraphics._activeTextureSlot = slot;
-				while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(null);
+				while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(clay_opengl_GLGraphics.NO_TEXTURE);
 				clay_opengl_web_GL.gl.activeTexture(33984 + slot);
 			}
 		}
@@ -75734,546 +75939,6 @@ clay_graphics_Vector4.prototype = {
 	,z: null
 	,w: null
 	,__class__: clay_graphics_Vector4
-};
-var clay_opengl_GLGraphics = function() { };
-$hxClasses["clay.opengl.GLGraphics"] = clay_opengl_GLGraphics;
-clay_opengl_GLGraphics.__name__ = "clay.opengl.GLGraphics";
-clay_opengl_GLGraphics.setup = function() {
-	clay_opengl_GLGraphics._defaultFramebuffer = clay_opengl_web_GL.gl.getParameter(36006);
-	clay_opengl_GLGraphics._defaultRenderbuffer = clay_opengl_web_GL.gl.getParameter(36007);
-	clay_opengl_GLGraphics._didFetchDefaultBuffers = true;
-};
-clay_opengl_GLGraphics.clear = function(r,g,b,a,clearDepth) {
-	if(clearDepth == null) {
-		clearDepth = true;
-	}
-	clay_opengl_web_GL.gl.clearColor(r,g,b,a);
-	if(clearDepth && clay_Clay.app.config.render.depth > 0) {
-		clay_opengl_web_GL.gl.clear(16640);
-		clay_opengl_web_GL.gl.clearDepth(1.0);
-	} else {
-		clay_opengl_web_GL.gl.clear(16384);
-	}
-};
-clay_opengl_GLGraphics.createTextureId = function() {
-	return clay_opengl_web_GL.gl.createTexture();
-};
-clay_opengl_GLGraphics.setActiveTexture = function(slot) {
-	if(clay_opengl_GLGraphics._activeTextureSlot != slot) {
-		clay_opengl_GLGraphics._activeTextureSlot = slot;
-		while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(null);
-		clay_opengl_web_GL.gl.activeTexture(33984 + slot);
-	}
-};
-clay_opengl_GLGraphics.deleteTexture = function(textureId) {
-	clay_opengl_web_GL.gl.deleteTexture(textureId);
-	var _g = 0;
-	var _g1 = clay_opengl_GLGraphics._boundTexture2D.length;
-	while(_g < _g1) {
-		var i = _g++;
-		if(clay_opengl_GLGraphics._boundTexture2D[i] == textureId) {
-			clay_opengl_GLGraphics._boundTexture2D[i] = null;
-		}
-	}
-};
-clay_opengl_GLGraphics.setViewport = function(x,y,width,height) {
-	clay_opengl_web_GL.gl.viewport(x,y,width,height);
-};
-clay_opengl_GLGraphics.bindTexture2d = function(textureId) {
-	if(clay_opengl_GLGraphics._boundTexture2D[clay_opengl_GLGraphics._activeTextureSlot] != textureId) {
-		clay_opengl_GLGraphics._boundTexture2D[clay_opengl_GLGraphics._activeTextureSlot] = textureId;
-		clay_opengl_web_GL.gl.bindTexture(3553,textureId);
-	}
-};
-clay_opengl_GLGraphics.maxTextureSize = function() {
-	var size = clay_opengl_web_GL.gl.getParameter(3379);
-	if(size <= 0) {
-		size = 4096;
-	}
-	return size;
-};
-clay_opengl_GLGraphics.needsPreprocessedPremultipliedAlpha = function() {
-	return false;
-};
-clay_opengl_GLGraphics.submitCompressedTexture2dPixels = function(level,format,width,height,pixels,premultipliedAlpha) {
-	clay_opengl_web_GL.gl.pixelStorei(37441,premultipliedAlpha ? 1 : 0);
-	clay_opengl_web_GL.gl.compressedTexImage2D(3553,level,format,width,height,0,pixels);
-};
-clay_opengl_GLGraphics.submitTexture2dPixels = function(level,format,width,height,dataType,pixels,premultipliedAlpha) {
-	clay_opengl_web_GL.gl.pixelStorei(37441,premultipliedAlpha ? 1 : 0);
-	clay_opengl_web_GL.gl.texImage2D(3553,level,format,width,height,0,format,dataType,pixels);
-};
-clay_opengl_GLGraphics.fetchTexture2dPixels = function(into,x,y,w,h) {
-	if(into == null) {
-		throw haxe_Exception.thrown("Texture fetch requires a valid buffer to store the pixels.");
-	}
-	var textureId = clay_opengl_GLGraphics._boundTexture2D[clay_opengl_GLGraphics._activeTextureSlot];
-	var required = w * h * 4;
-	if(into.length < required) {
-		throw haxe_Exception.thrown("Texture fetch requires at least " + required + " (w * h * 4) bytes for the pixels, you have " + into.length + "!");
-	}
-	var fb = clay_opengl_web_GL.gl.createFramebuffer();
-	clay_opengl_web_GL.gl.bindFramebuffer(36160,fb);
-	clay_opengl_web_GL.gl.framebufferTexture2D(36160,36064,3553,textureId,0);
-	if(clay_opengl_web_GL.gl.checkFramebufferStatus(36160) != 36053) {
-		throw haxe_Exception.thrown("Incomplete framebuffer");
-	}
-	clay_opengl_web_GL.gl.readPixels(x,y,w,h,6408,5121,into);
-	clay_opengl_web_GL.gl.bindFramebuffer(36160,null);
-	clay_opengl_web_GL.gl.deleteFramebuffer(fb);
-	fb = null;
-};
-clay_opengl_GLGraphics.createFramebuffer = function() {
-	return clay_opengl_web_GL.gl.createFramebuffer();
-};
-clay_opengl_GLGraphics.bindFramebuffer = function(framebuffer) {
-	if(clay_opengl_GLGraphics._boundFramebuffer != framebuffer) {
-		clay_opengl_GLGraphics._boundFramebuffer = framebuffer;
-		if(framebuffer == null) {
-			framebuffer = clay_opengl_GLGraphics._defaultFramebuffer;
-		}
-		clay_opengl_web_GL.gl.bindFramebuffer(36160,framebuffer);
-	}
-};
-clay_opengl_GLGraphics.createRenderbuffer = function() {
-	return clay_opengl_web_GL.gl.createRenderbuffer();
-};
-clay_opengl_GLGraphics.bindRenderbuffer = function(renderbuffer) {
-	if(clay_opengl_GLGraphics._boundRenderbuffer != renderbuffer) {
-		clay_opengl_GLGraphics._boundRenderbuffer = renderbuffer;
-		if(renderbuffer == null) {
-			renderbuffer = clay_opengl_GLGraphics._defaultRenderbuffer;
-		}
-		clay_opengl_web_GL.gl.bindRenderbuffer(36161,renderbuffer);
-	}
-};
-clay_opengl_GLGraphics.setTexture2dMinFilter = function(minFilter) {
-	clay_opengl_web_GL.gl.texParameteri(3553,10241,minFilter);
-};
-clay_opengl_GLGraphics.setTexture2dMagFilter = function(magFilter) {
-	clay_opengl_web_GL.gl.texParameteri(3553,10240,magFilter);
-};
-clay_opengl_GLGraphics.setTexture2dWrapS = function(wrapS) {
-	clay_opengl_web_GL.gl.texParameteri(3553,10242,wrapS);
-};
-clay_opengl_GLGraphics.setTexture2dWrapT = function(wrapT) {
-	clay_opengl_web_GL.gl.texParameteri(3553,10243,wrapT);
-};
-clay_opengl_GLGraphics.configureRenderTargetBuffersStorage = function(renderTarget,textureId,width,height,depth,stencil,antialiasing) {
-	if(antialiasing > 1) {
-		clay_opengl_GLGraphics.bindRenderbuffer(renderTarget.renderbuffer);
-		clay_opengl_web_GL.gl.renderbufferStorageMultisample(36161,antialiasing,32856,width,height);
-		if(depth || stencil) {
-			clay_opengl_GLGraphics.bindRenderbuffer(renderTarget.msDepthStencilRenderbuffer);
-			if(stencil) {
-				clay_opengl_web_GL.gl.renderbufferStorageMultisample(36161,antialiasing,35056,width,height);
-			} else {
-				clay_opengl_web_GL.gl.renderbufferStorageMultisample(36161,antialiasing,33189,width,height);
-			}
-		}
-		clay_opengl_GLGraphics.bindFramebuffer(renderTarget.framebuffer);
-		clay_opengl_web_GL.gl.framebufferRenderbuffer(36160,36064,36161,renderTarget.renderbuffer);
-		if(depth || stencil) {
-			if(stencil) {
-				clay_opengl_web_GL.gl.framebufferRenderbuffer(36160,33306,36161,renderTarget.msDepthStencilRenderbuffer);
-			} else {
-				clay_opengl_web_GL.gl.framebufferRenderbuffer(36160,36096,36161,renderTarget.msDepthStencilRenderbuffer);
-			}
-		}
-		clay_opengl_GLGraphics.bindRenderbuffer(renderTarget.msResolveColorRenderbuffer);
-		clay_opengl_web_GL.gl.renderbufferStorage(36161,32856,width,height);
-		clay_opengl_GLGraphics.bindFramebuffer(renderTarget.msResolveFramebuffer);
-		clay_opengl_web_GL.gl.framebufferTexture2D(36160,36064,3553,textureId,0);
-	} else {
-		clay_opengl_GLGraphics.bindRenderbuffer(renderTarget.renderbuffer);
-		if(stencil) {
-			clay_opengl_web_GL.gl.renderbufferStorage(36161,34041,width,height);
-		} else if(depth) {
-			clay_opengl_web_GL.gl.renderbufferStorage(36161,33189,width,height);
-		} else {
-			clay_opengl_web_GL.gl.renderbufferStorage(36161,6408,width,height);
-		}
-		clay_opengl_GLGraphics.bindFramebuffer(renderTarget.framebuffer);
-		clay_opengl_web_GL.gl.framebufferTexture2D(36160,36064,3553,textureId,0);
-		if(depth || stencil) {
-			if(stencil) {
-				clay_opengl_web_GL.gl.framebufferRenderbuffer(36160,33306,36161,renderTarget.renderbuffer);
-			} else {
-				clay_opengl_web_GL.gl.framebufferRenderbuffer(36160,36096,36161,renderTarget.renderbuffer);
-			}
-		}
-	}
-	var status = clay_opengl_web_GL.gl.checkFramebufferStatus(36160);
-	switch(status) {
-	case 36053:
-		break;
-	case 36054:
-		throw haxe_Exception.thrown("Incomplete framebuffer: FRAMEBUFFER_INCOMPLETE_ATTACHMENT");
-	case 36055:
-		throw haxe_Exception.thrown("Incomplete framebuffer: FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT");
-	case 36057:
-		throw haxe_Exception.thrown("Incomplete framebuffer: FRAMEBUFFER_INCOMPLETE_DIMENSIONS");
-	case 36059:
-		throw haxe_Exception.thrown("Incomplete framebuffer: FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER");
-	case 36060:
-		throw haxe_Exception.thrown("Incomplete framebuffer: FRAMEBUFFER_INCOMPLETE_READ_BUFFER");
-	case 36061:
-		throw haxe_Exception.thrown("Incomplete framebuffer: FRAMEBUFFER_UNSUPPORTED");
-	case 36182:
-		throw haxe_Exception.thrown("Incomplete framebuffer: FRAMEBUFFER_INCOMPLETE_MULTISAMPLE");
-	default:
-		throw haxe_Exception.thrown("Incomplete framebuffer: " + status);
-	}
-	clay_opengl_GLGraphics.bindFramebuffer(null);
-	clay_opengl_GLGraphics.bindRenderbuffer(null);
-};
-clay_opengl_GLGraphics.blitRenderTargetBuffers = function(renderTarget,width,height) {
-	clay_opengl_web_GL.gl.bindFramebuffer(36008,renderTarget.framebuffer);
-	clay_opengl_web_GL.gl.bindFramebuffer(36009,renderTarget.msResolveFramebuffer);
-	clay_opengl_web_GL.gl.clearBufferfv(6144,0,clay_opengl_GLGraphics.clearBufferForBlitValues,0);
-	clay_opengl_web_GL.gl.blitFramebuffer(0,0,width,height,0,0,width,height,16384,9728);
-	clay_opengl_web_GL.gl.bindFramebuffer(36008,null);
-	clay_opengl_web_GL.gl.bindFramebuffer(36009,null);
-};
-clay_opengl_GLGraphics.createRenderTarget = function(textureId,width,height,depth,stencil,antialiasing,level,format,dataType) {
-	var renderTarget = new clay_opengl_GLGraphics_$RenderTarget();
-	clay_opengl_web_GL.gl.texImage2D(3553,level,format,width,height,0,format,dataType,null);
-	renderTarget.framebuffer = clay_opengl_web_GL.gl.createFramebuffer();
-	renderTarget.renderbuffer = clay_opengl_web_GL.gl.createRenderbuffer();
-	if(antialiasing > 1) {
-		renderTarget.msResolveFramebuffer = clay_opengl_web_GL.gl.createFramebuffer();
-		renderTarget.msResolveColorRenderbuffer = clay_opengl_web_GL.gl.createRenderbuffer();
-		if(depth || stencil) {
-			renderTarget.msDepthStencilRenderbuffer = clay_opengl_web_GL.gl.createRenderbuffer();
-		} else {
-			renderTarget.msDepthStencilRenderbuffer = null;
-		}
-	} else {
-		renderTarget.msResolveFramebuffer = null;
-		renderTarget.msResolveColorRenderbuffer = null;
-		renderTarget.msDepthStencilRenderbuffer = null;
-	}
-	clay_opengl_GLGraphics.configureRenderTargetBuffersStorage(renderTarget,textureId,width,height,depth,stencil,antialiasing);
-	return renderTarget;
-};
-clay_opengl_GLGraphics.deleteRenderTarget = function(renderTarget) {
-	if(renderTarget.framebuffer != null) {
-		if(clay_opengl_GLGraphics._boundFramebuffer == renderTarget.framebuffer) {
-			clay_opengl_GLGraphics._boundFramebuffer = null;
-		}
-		clay_opengl_web_GL.gl.deleteFramebuffer(renderTarget.framebuffer);
-		renderTarget.framebuffer = null;
-	}
-	if(renderTarget.renderbuffer != null) {
-		if(clay_opengl_GLGraphics._boundRenderbuffer == renderTarget.renderbuffer) {
-			clay_opengl_GLGraphics._boundRenderbuffer = null;
-		}
-		clay_opengl_web_GL.gl.deleteRenderbuffer(renderTarget.renderbuffer);
-		renderTarget.renderbuffer = null;
-	}
-	if(renderTarget.msDepthStencilRenderbuffer != null) {
-		if(clay_opengl_GLGraphics._boundRenderbuffer == renderTarget.msDepthStencilRenderbuffer) {
-			clay_opengl_GLGraphics._boundRenderbuffer = null;
-		}
-		clay_opengl_web_GL.gl.deleteRenderbuffer(renderTarget.msDepthStencilRenderbuffer);
-		renderTarget.msDepthStencilRenderbuffer = null;
-	}
-	if(renderTarget.msResolveColorRenderbuffer != null) {
-		if(clay_opengl_GLGraphics._boundRenderbuffer == renderTarget.msResolveColorRenderbuffer) {
-			clay_opengl_GLGraphics._boundRenderbuffer = null;
-		}
-		clay_opengl_web_GL.gl.deleteRenderbuffer(renderTarget.msResolveColorRenderbuffer);
-		renderTarget.msResolveColorRenderbuffer = null;
-	}
-	if(renderTarget.msResolveFramebuffer != null) {
-		if(clay_opengl_GLGraphics._boundFramebuffer == renderTarget.msResolveFramebuffer) {
-			clay_opengl_GLGraphics._boundFramebuffer = null;
-		}
-		clay_opengl_web_GL.gl.deleteFramebuffer(renderTarget.msResolveFramebuffer);
-		renderTarget.msResolveFramebuffer = null;
-	}
-};
-clay_opengl_GLGraphics.setRenderTarget = function(renderTarget) {
-	if(renderTarget != null) {
-		clay_opengl_GLGraphics.bindFramebuffer(renderTarget.framebuffer);
-		clay_opengl_GLGraphics.bindRenderbuffer(renderTarget.renderbuffer);
-	} else {
-		clay_opengl_GLGraphics.bindFramebuffer(null);
-		clay_opengl_GLGraphics.bindRenderbuffer(null);
-	}
-};
-clay_opengl_GLGraphics.enableBlending = function() {
-	clay_opengl_web_GL.gl.enable(3042);
-};
-clay_opengl_GLGraphics.disableBlending = function() {
-	clay_opengl_web_GL.gl.disable(3042);
-};
-clay_opengl_GLGraphics.createShader = function(vertSource,fragSource,attributes,textures) {
-	if(vertSource == null) {
-		throw haxe_Exception.thrown("Cannot create shader: vertSource is null!");
-	}
-	if(fragSource == null) {
-		throw haxe_Exception.thrown("Cannot create shader: fragSource is null!");
-	}
-	var shader = new clay_opengl_GLGraphics_$GpuShader();
-	shader.vertShader = clay_opengl_GLGraphics.compileGLShader(35633,vertSource);
-	if(shader.vertShader == null) {
-		clay_opengl_GLGraphics.deleteShader(shader);
-		return null;
-	}
-	shader.fragShader = clay_opengl_GLGraphics.compileGLShader(35632,fragSource);
-	if(shader.fragShader == null) {
-		clay_opengl_GLGraphics.deleteShader(shader);
-		return null;
-	}
-	if(!clay_opengl_GLGraphics.linkShader(shader,attributes)) {
-		clay_opengl_GLGraphics.deleteShader(shader);
-		return null;
-	}
-	if(textures != null) {
-		clay_opengl_GLGraphics.configureShaderTextureSlots(shader,textures);
-	}
-	return shader;
-};
-clay_opengl_GLGraphics.linkShader = function(shader,attributes) {
-	var program = clay_opengl_web_GL.gl.createProgram();
-	clay_opengl_web_GL.gl.attachShader(program,shader.vertShader);
-	clay_opengl_web_GL.gl.attachShader(program,shader.fragShader);
-	if(attributes != null) {
-		var _g = 0;
-		var _g1 = attributes.length;
-		while(_g < _g1) {
-			var i = _g++;
-			clay_opengl_web_GL.gl.bindAttribLocation(program,i,attributes[i]);
-		}
-	}
-	clay_opengl_web_GL.gl.linkProgram(program);
-	if(clay_opengl_web_GL.gl.getProgramParameter(program,35714) == 0) {
-		clay_Log.error("\tFailed to link shader program:",{ fileName : "/home/sharpcdf/ceramic/git/clay/src/clay/opengl/GLGraphics.hx", lineNumber : 684, className : "clay.opengl.GLGraphics", methodName : "linkShader"});
-		var items = clay_opengl_web_GL.gl.getProgramInfoLog(program).split("\n");
-		var _g = [];
-		var _g1 = 0;
-		var _g2 = items;
-		while(_g1 < _g2.length) {
-			var v = _g2[_g1];
-			++_g1;
-			if(StringTools.trim(v) != "") {
-				_g.push(v);
-			}
-		}
-		items = _g;
-		var result = new Array(items.length);
-		var _g = 0;
-		var _g1 = items.length;
-		while(_g < _g1) {
-			var i = _g++;
-			result[i] = "\t\t" + StringTools.trim(items[i]);
-		}
-		items = result;
-		clay_Log.error(items.join("\n"),{ fileName : "/home/sharpcdf/ceramic/git/clay/src/clay/opengl/GLGraphics.hx", lineNumber : 685, className : "clay.opengl.GLGraphics", methodName : "linkShader"});
-		clay_opengl_web_GL.gl.deleteProgram(program);
-		return false;
-	}
-	shader.program = program;
-	return true;
-};
-clay_opengl_GLGraphics.configureShaderTextureSlots = function(shader,textures) {
-	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
-		clay_opengl_GLGraphics._boundProgram = shader.program;
-		clay_opengl_web_GL.gl.useProgram(shader.program);
-	}
-	var _g = 0;
-	var _g1 = textures.length;
-	while(_g < _g1) {
-		var i = _g++;
-		var texture = textures[i];
-		var attr = clay_opengl_web_GL.gl.getUniformLocation(shader.program,texture);
-		if(attr != null) {
-			clay_opengl_web_GL.gl.uniform1i(attr,i);
-			shader.textures[i] = texture;
-		}
-	}
-};
-clay_opengl_GLGraphics.useShader = function(shader) {
-	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
-		clay_opengl_GLGraphics._boundProgram = shader.program;
-		clay_opengl_web_GL.gl.useProgram(shader.program);
-	}
-};
-clay_opengl_GLGraphics.deleteShader = function(shader) {
-	if(clay_opengl_GLGraphics._boundProgram == shader.program) {
-		clay_opengl_GLGraphics._boundProgram = null;
-	}
-	if(shader.vertShader != null) {
-		clay_opengl_web_GL.gl.deleteShader(shader.vertShader);
-		shader.vertShader = null;
-	}
-	if(shader.fragShader != null) {
-		clay_opengl_web_GL.gl.deleteShader(shader.fragShader);
-		shader.fragShader = null;
-	}
-	if(shader.program != null) {
-		clay_opengl_web_GL.gl.deleteProgram(shader.program);
-		shader.program = null;
-	}
-};
-clay_opengl_GLGraphics.compileGLShader = function(type,source) {
-	var shader = clay_opengl_web_GL.gl.createShader(type);
-	clay_opengl_web_GL.gl.shaderSource(shader,source);
-	clay_opengl_web_GL.gl.compileShader(shader);
-	var compileLog = clay_opengl_web_GL.gl.getShaderInfoLog(shader);
-	var log = "";
-	if(compileLog != null && compileLog.length > 0) {
-		var isFrag = type == 35632;
-		var typeName = isFrag ? "frag" : "vert";
-		log += "\n\t// start -- (" + typeName + ") compile log --\n";
-		var items = compileLog.split("\n");
-		var _g = [];
-		var _g1 = 0;
-		var _g2 = items;
-		while(_g1 < _g2.length) {
-			var v = _g2[_g1];
-			++_g1;
-			if(StringTools.trim(v) != "") {
-				_g.push(v);
-			}
-		}
-		items = _g;
-		var result = new Array(items.length);
-		var _g = 0;
-		var _g1 = items.length;
-		while(_g < _g1) {
-			var i = _g++;
-			result[i] = "\t\t" + StringTools.trim(items[i]);
-		}
-		items = result;
-		log += items.join("\n");
-		log += "\n\t// end --\n";
-	}
-	if(clay_opengl_web_GL.gl.getShaderParameter(shader,35713) == 0) {
-		clay_Log.error("GL / Failed to compile shader:",{ fileName : "/home/sharpcdf/ceramic/git/clay/src/clay/opengl/GLGraphics.hx", lineNumber : 772, className : "clay.opengl.GLGraphics", methodName : "compileGLShader"});
-		var tmp;
-		if(log.length == 0) {
-			var items = clay_opengl_web_GL.gl.getShaderInfoLog(shader).split("\n");
-			var _g = [];
-			var _g1 = 0;
-			var _g2 = items;
-			while(_g1 < _g2.length) {
-				var v = _g2[_g1];
-				++_g1;
-				if(StringTools.trim(v) != "") {
-					_g.push(v);
-				}
-			}
-			items = _g;
-			var result = new Array(items.length);
-			var _g = 0;
-			var _g1 = items.length;
-			while(_g < _g1) {
-				var i = _g++;
-				result[i] = "\t\t" + StringTools.trim(items[i]);
-			}
-			items = result;
-			tmp = items.join("\n");
-		} else {
-			tmp = log;
-		}
-		clay_Log.error(tmp,{ fileName : "/home/sharpcdf/ceramic/git/clay/src/clay/opengl/GLGraphics.hx", lineNumber : 773, className : "clay.opengl.GLGraphics", methodName : "compileGLShader"});
-		clay_opengl_web_GL.gl.deleteShader(shader);
-		shader = null;
-	}
-	return shader;
-};
-clay_opengl_GLGraphics.getUniformLocation = function(shader,name) {
-	return clay_opengl_web_GL.gl.getUniformLocation(shader.program,name);
-};
-clay_opengl_GLGraphics.setIntUniform = function(shader,location,value) {
-	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
-		clay_opengl_GLGraphics._boundProgram = shader.program;
-		clay_opengl_web_GL.gl.useProgram(shader.program);
-	}
-	clay_opengl_web_GL.gl.uniform1i(location,value);
-};
-clay_opengl_GLGraphics.setIntArrayUniform = function(shader,location,value) {
-	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
-		clay_opengl_GLGraphics._boundProgram = shader.program;
-		clay_opengl_web_GL.gl.useProgram(shader.program);
-	}
-	clay_opengl_web_GL.gl.uniform1iv(location,value);
-};
-clay_opengl_GLGraphics.setFloatUniform = function(shader,location,value) {
-	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
-		clay_opengl_GLGraphics._boundProgram = shader.program;
-		clay_opengl_web_GL.gl.useProgram(shader.program);
-	}
-	clay_opengl_web_GL.gl.uniform1f(location,value);
-};
-clay_opengl_GLGraphics.setFloatArrayUniform = function(shader,location,value) {
-	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
-		clay_opengl_GLGraphics._boundProgram = shader.program;
-		clay_opengl_web_GL.gl.useProgram(shader.program);
-	}
-	clay_opengl_web_GL.gl.uniform1fv(location,value);
-};
-clay_opengl_GLGraphics.setVector2Uniform = function(shader,location,x,y) {
-	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
-		clay_opengl_GLGraphics._boundProgram = shader.program;
-		clay_opengl_web_GL.gl.useProgram(shader.program);
-	}
-	clay_opengl_web_GL.gl.uniform2f(location,x,y);
-};
-clay_opengl_GLGraphics.setVector3Uniform = function(shader,location,x,y,z) {
-	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
-		clay_opengl_GLGraphics._boundProgram = shader.program;
-		clay_opengl_web_GL.gl.useProgram(shader.program);
-	}
-	clay_opengl_web_GL.gl.uniform3f(location,x,y,z);
-};
-clay_opengl_GLGraphics.setVector4Uniform = function(shader,location,x,y,z,w) {
-	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
-		clay_opengl_GLGraphics._boundProgram = shader.program;
-		clay_opengl_web_GL.gl.useProgram(shader.program);
-	}
-	clay_opengl_web_GL.gl.uniform4f(location,x,y,z,w);
-};
-clay_opengl_GLGraphics.setColorUniform = function(shader,location,r,g,b,a) {
-	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
-		clay_opengl_GLGraphics._boundProgram = shader.program;
-		clay_opengl_web_GL.gl.useProgram(shader.program);
-	}
-	clay_opengl_web_GL.gl.uniform4f(location,r,g,b,a);
-};
-clay_opengl_GLGraphics.setMatrix4Uniform = function(shader,location,value) {
-	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
-		clay_opengl_GLGraphics._boundProgram = shader.program;
-		clay_opengl_web_GL.gl.useProgram(shader.program);
-	}
-	clay_opengl_web_GL.gl.uniformMatrix4fv(location,false,value);
-};
-clay_opengl_GLGraphics.setTexture2dUniform = function(shader,location,slot,texture) {
-	if(clay_opengl_GLGraphics._boundProgram != shader.program) {
-		clay_opengl_GLGraphics._boundProgram = shader.program;
-		clay_opengl_web_GL.gl.useProgram(shader.program);
-	}
-	clay_opengl_web_GL.gl.uniform1i(location,slot);
-	if(clay_opengl_GLGraphics._activeTextureSlot != slot) {
-		clay_opengl_GLGraphics._activeTextureSlot = slot;
-		while(clay_opengl_GLGraphics._boundTexture2D.length <= clay_opengl_GLGraphics._activeTextureSlot) clay_opengl_GLGraphics._boundTexture2D.push(null);
-		clay_opengl_web_GL.gl.activeTexture(33984 + slot);
-	}
-	if(clay_opengl_GLGraphics._boundTexture2D[clay_opengl_GLGraphics._activeTextureSlot] != texture) {
-		clay_opengl_GLGraphics._boundTexture2D[clay_opengl_GLGraphics._activeTextureSlot] = texture;
-		clay_opengl_web_GL.gl.bindTexture(3553,texture);
-	}
-};
-clay_opengl_GLGraphics.setBlendFuncSeparate = function(srcRgb,dstRgb,srcAlpha,dstAlpha) {
-	clay_opengl_web_GL.gl.blendFuncSeparate(srcRgb,dstRgb,srcAlpha,dstAlpha);
-};
-clay_opengl_GLGraphics.ensureNoError = function() {
-	var error = clay_opengl_web_GL.gl.getError();
-	if(error != 0) {
-		throw haxe_Exception.thrown("Failed with GL error: " + error);
-	}
 };
 var clay_opengl_GLGraphics_$RenderTarget = function() {
 };
@@ -82225,13 +81890,17 @@ tracker_Autorun.unobserve = function() {
 	tracker_Autorun.current = null;
 };
 tracker_Autorun.reobserve = function() {
+	if(tracker_Autorun.prevCurrent.length <= 0) {
+		var _this = tracker_Tracker.backend;
+		ceramic_App.app.logger.error("prevCurrent.length > 0" + (" (" + "Cannot call reobserve() without calling unobserve() before." + ")"),{ fileName : "/home/sharpcdf/ceramic/git/tracker/src/tracker/Autorun.hx", lineNumber : 129, className : "tracker.Autorun", methodName : "reobserve"});
+		throw haxe_Exception.thrown("prevCurrent.length > 0" + (" (" + "Cannot call reobserve() without calling unobserve() before." + ")"));
+	}
 	tracker_Autorun.current = tracker_Autorun.prevCurrent.pop();
 };
 tracker_Autorun.unobserved = function(func) {
-	tracker_Autorun.prevCurrent.push(tracker_Autorun.current);
-	tracker_Autorun.current = null;
+	tracker_Autorun.unobserve();
 	func();
-	tracker_Autorun.current = tracker_Autorun.prevCurrent.pop();
+	tracker_Autorun.reobserve();
 };
 tracker_Autorun.getAutorunArray = function() {
 	if(tracker_Autorun._autorunArraysLen > 0) {
@@ -82508,10 +82177,9 @@ tracker_Autorun.prototype = $extend(ceramic_Entity.prototype,{
 		var numPrevCurrent = tracker_Autorun.prevCurrent.length;
 		this.onRun();
 		if(this.afterRun != null) {
-			tracker_Autorun.prevCurrent.push(tracker_Autorun.current);
-			tracker_Autorun.current = null;
+			tracker_Autorun.unobserve();
 			this.afterRun();
-			tracker_Autorun.current = tracker_Autorun.prevCurrent.pop();
+			tracker_Autorun.reobserve();
 		}
 		while(numPrevCurrent < tracker_Autorun.prevCurrent.length) tracker_Autorun.prevCurrent.pop();
 		tracker_Autorun.current = _prevCurrent;
@@ -82690,6 +82358,11 @@ tracker_Serialize.serializeValue = function(value) {
 		var className = clazz.__name__;
 		var props = { };
 		var id = value._serializeId;
+		if(id == null) {
+			var _this = tracker_Tracker.backend;
+			ceramic_App.app.logger.error("id != null" + (" (" + "Serializable id must not be null" + ")"),{ fileName : "/home/sharpcdf/ceramic/git/tracker/src/tracker/Serialize.hx", lineNumber : 99, className : "tracker.Serialize", methodName : "serializeValue"});
+			throw haxe_Exception.thrown("id != null" + (" (" + "Serializable id must not be null" + ")"));
+		}
 		if(!Object.prototype.hasOwnProperty.call(tracker_Serialize._cachedEnumInfoBySerializableType.h,className)) {
 			tracker_Serialize._cachedEnumInfoBySerializableType.h[className] = true;
 			if(Object.prototype.hasOwnProperty.call(clazz,"_serializeEnumInfo")) {
@@ -82858,6 +82531,11 @@ tracker_Serialize.deserializeValue = function(value,serializable) {
 				reusingInstance = true;
 			} else {
 				instance = serializable != null && js_Boot.getClass(serializable) == clazz ? serializable : Object.create(clazz.prototype);
+			}
+			if(instance == null) {
+				var _this = tracker_Tracker.backend;
+				ceramic_App.app.logger.error("instance != null" + (" (" + "Created empty instance should not be null" + ")"),{ fileName : "/home/sharpcdf/ceramic/git/tracker/src/tracker/Serialize.hx", lineNumber : 332, className : "tracker.Serialize", methodName : "deserializeValue"});
+				throw haxe_Exception.thrown("instance != null" + (" (" + "Created empty instance should not be null" + ")"));
 			}
 			instance._serializeId = value.id;
 			tracker_Serialize._deserializedMap.h[value.id] = instance;
@@ -84386,7 +84064,23 @@ backend_Info.RE_SAFARI_VERSION = new EReg("Version/(.*?) ","");
 backend_Shaders.SHADER_ATTRIBUTES = ["vertexPosition","vertexTCoord","vertexColor"];
 backend_Shaders.SHADER_ATTRIBUTES_MULTITEXTURE = ["vertexPosition","vertexTCoord","vertexColor","vertexTextureId"];
 backend_Shaders._maxIfStatementsByFragmentShader = -1;
-backend_TextureId.DEFAULT = null;
+clay_opengl_GLGraphics.DEPTH24_STENCIL8 = 35056;
+clay_opengl_GLGraphics.DEPTH_COMPONENT24 = 33190;
+clay_opengl_GLGraphics.TEXTURE_2D_MULTISAMPLE = 37120;
+clay_opengl_GLGraphics.READ_FRAMEBUFFER = 36008;
+clay_opengl_GLGraphics.DRAW_FRAMEBUFFER = 36009;
+clay_opengl_GLGraphics.RGBA8 = 32856;
+clay_opengl_GLGraphics.COLOR = 6144;
+clay_opengl_GLGraphics._boundTexture2D = [];
+clay_opengl_GLGraphics._boundProgram = clay_opengl_GLGraphics.NO_PROGRAM;
+clay_opengl_GLGraphics._activeTextureSlot = -1;
+clay_opengl_GLGraphics._boundFramebuffer = clay_opengl_GLGraphics.NO_FRAMEBUFFER;
+clay_opengl_GLGraphics._boundRenderbuffer = clay_opengl_GLGraphics.NO_RENDERBUFFER;
+clay_opengl_GLGraphics._didFetchDefaultBuffers = false;
+clay_opengl_GLGraphics._defaultFramebuffer = clay_opengl_GLGraphics.NO_FRAMEBUFFER;
+clay_opengl_GLGraphics._defaultRenderbuffer = clay_opengl_GLGraphics.NO_RENDERBUFFER;
+clay_opengl_GLGraphics.clearBufferForBlitValues = new Float32Array([0.0,0.0,0.0,1.0]);
+backend_TextureId.DEFAULT = clay_opengl_GLGraphics.NO_TEXTURE;
 backend_Textures._maxTexturesByBatch = -1;
 ceramic_AlphaColor.NONE = -1;
 ceramic_AlphaColor.TRANSPARENT = 0;
@@ -85720,17 +85414,6 @@ clay_buffers_Int32ArrayImplJS.BYTES_PER_ELEMENT = 4;
 clay_buffers_Uint16ArrayImplJS.BYTES_PER_ELEMENT = 2;
 clay_buffers_Uint8ArrayImplJS.BYTES_PER_ELEMENT = 1;
 clay_graphics_Texture._nextIndex = 1;
-clay_opengl_GLGraphics.DEPTH24_STENCIL8 = 35056;
-clay_opengl_GLGraphics.DEPTH_COMPONENT24 = 33190;
-clay_opengl_GLGraphics.TEXTURE_2D_MULTISAMPLE = 37120;
-clay_opengl_GLGraphics.READ_FRAMEBUFFER = 36008;
-clay_opengl_GLGraphics.DRAW_FRAMEBUFFER = 36009;
-clay_opengl_GLGraphics.RGBA8 = 32856;
-clay_opengl_GLGraphics.COLOR = 6144;
-clay_opengl_GLGraphics._boundTexture2D = [];
-clay_opengl_GLGraphics._activeTextureSlot = -1;
-clay_opengl_GLGraphics._didFetchDefaultBuffers = false;
-clay_opengl_GLGraphics.clearBufferForBlitValues = new Float32Array([0.0,0.0,0.0,1.0]);
 clay_opengl_web_GL.DEPTH_BUFFER_BIT = 256;
 clay_opengl_web_GL.STENCIL_BUFFER_BIT = 1024;
 clay_opengl_web_GL.COLOR_BUFFER_BIT = 16384;
@@ -86157,3 +85840,5 @@ tracker_Utils._nextUniqueInt2 = Math.random() * 2147483646 | 0;
 tracker_Utils._nextUniqueInt3 = Math.random() * 2147483646 | 0;
 Main.main();
 })(typeof window != "undefined" ? window : typeof global != "undefined" ? global : typeof self != "undefined" ? self : this);
+
+//# sourceMappingURL=honeywheresmycoat.js.map
